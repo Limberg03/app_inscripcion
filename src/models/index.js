@@ -14,6 +14,9 @@ const GrupoMateria = require('./GrupoMateria');
 const Horario = require('./Horario');
 const Nota = require('./Nota');
 
+// ¡AGREGAR EL MODELO USUARIO!
+const Usuario = require('./Usuario')(sequelize, require('sequelize').DataTypes);
+
 // Definir todas las relaciones
 
 // Plan_Estudio -> Carrera (1:N)
@@ -137,8 +140,10 @@ Materia.belongsTo(PlanEstudio, {
   as: 'planEstudio' 
 });
 
+
 module.exports = {
   sequelize,
+  Usuario, 
   Estudiante,
   Inscripcion,
   PlanEstudio,

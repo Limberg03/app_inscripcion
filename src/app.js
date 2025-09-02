@@ -10,10 +10,10 @@ const { notFound, errorHandler, requestLogger } = require('./middleware/index');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware de seguridad
+
 app.use(helmet());
 
-// CORS
+
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://yourdomain.com'] 
@@ -21,19 +21,18 @@ app.use(cors({
   credentials: true
 }));
 
-// Parsing de JSON y URL
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Logger de requests (solo en desarrollo)
 if (process.env.NODE_ENV === 'development') {
   app.use(requestLogger);
 }
 
-// Rutas principales
-app.use('/api/v1', routes);
 
-// Ruta raíz
+app.use('/', routes);
+
+
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -47,29 +46,20 @@ app.get('/', (req, res) => {
   });
 });
 
-// Middleware de manejo de errores
 app.use(notFound);
 app.use(errorHandler);
 
-// Función para inicializar la aplicación
 const initializeApp = async () => {
   try {
-    // Verificar conexión a la base de datos
+
     await sequelize.authenticate();
     console.log('✅ Conexión a PostgreSQL establecida correctamente');
 
-    // Sincronizar modelos (solo en desarrollo)
+
     if (process.env.NODE_ENV === 'development') {
       await sequelize.sync();
       console.log('✅ Modelos sincronizados');
     }
-
-    // Iniciar servidor
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-      console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`📊 API disponible en: http://localhost:${PORT}/api/v1`);
-    });
 
   } catch (error) {
     console.error('❌ Error al inicializar la aplicación:', error);
@@ -77,7 +67,6 @@ const initializeApp = async () => {
   }
 };
 
-// Manejar cierre graceful
 process.on('SIGTERM', async () => {
   console.log('🔄 Cerrando servidor...');
   await sequelize.close();
