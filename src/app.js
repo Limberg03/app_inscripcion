@@ -7,6 +7,11 @@ const { sequelize } = require('./models/index');
 const routes = require('./routes/index');
 const { notFound, errorHandler, requestLogger } = require('./middleware/index');
 
+const queueRoutes = require('./routes/queueRoutes');
+//const autoAsyncMiddleware = require('./middleware/autoAsyncMiddleware');
+
+
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -30,7 +35,11 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 
+//app.use(autoAsyncMiddleware());
 app.use('/', routes);
+// app.use('/queue', queueRoutes);
+app.use('/queue', queueRoutes);
+
 
 
 app.get('/', (req, res) => {
@@ -49,11 +58,30 @@ app.get('/', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
+const QueueService = require('./services/QueueService');
+let queueService = null;
+
 const initializeApp = async () => {
   try {
 
     await sequelize.authenticate();
     console.log('✅ Conexión a PostgreSQL establecida correctamente');
+
+// Inicializar sistema de colas
+    queueService = new QueueService();
+    await queueService.initialize();
+    
+    // Crear colas por defecto
+    await queueService.createQueue('default_queue');
+    await queueService.createQueue('inscriptions_queue');
+    await queueService.createQueue('bulk_operations');
+    
+    // Crear workers por defecto
+    await queueService.createWorker('default_queue', 2);
+    await queueService.createWorker('inscriptions_queue', 2);
+    await queueService.createWorker('bulk_operations', 4);
+    
+    console.log('✅ Sistema de colas inicializado');
 
 
     if (process.env.NODE_ENV === 'development') {
@@ -69,6 +97,9 @@ const initializeApp = async () => {
 
 process.on('SIGTERM', async () => {
   console.log('🔄 Cerrando servidor...');
+  if (queueService) {
+    await queueService.shutdown();
+  }
   await sequelize.close();
   console.log('✅ Conexiones cerradas');
   process.exit(0);
@@ -76,6 +107,9 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   console.log('🔄 Cerrando servidor...');
+  if (queueService) {
+    await queueService.shutdown();
+  }
   await sequelize.close();
   console.log('✅ Conexiones cerradas');
   process.exit(0);
