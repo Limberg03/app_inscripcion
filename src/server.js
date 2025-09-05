@@ -9,15 +9,9 @@ const startServer = async () => {
     console.log('✅ Conexión a PostgreSQL establecida correctamente');
 
     if (process.env.NODE_ENV === 'development') {
-      // Opción 1: Usar alter para actualizar la estructura existente
       await sequelize.sync({ alter: true });
       console.log('✅ Modelos sincronizados con alter');
-      
-      // Opción 2: Si quieres recrear todo (¡CUIDADO! Elimina todos los datos)
-      // await sequelize.sync({ force: true });
-      // console.log('✅ Modelos sincronizados con force');
     } else {
-      // En producción solo verificar conexión
       console.log('✅ Conexión verificada (producción)');
     }
 
