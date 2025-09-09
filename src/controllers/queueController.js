@@ -39,7 +39,7 @@ const queueController = {
     }
   },
 
-  saveRecord: async (req, res) => {
+  universalSave: async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -53,12 +53,27 @@ const queueController = {
       const { queueName, model } = req.params;
       const { data, options = {} } = req.body;
 
+      console.log("🔄 Universal Save - Parámetros recibidos:");
+      console.log("  queueName:", queueName);
+      console.log("  model:", model);
+      console.log("  data:", JSON.stringify(data, null, 2));
+
       const service = getQueueService();
-      const result = await service.saveRecord(queueName, model, data, options);
+
+      // Crear tarea con datos completos y estructura correcta
+      const result = await service.enqueueTask(queueName, {
+        type: "database",
+        model: model,
+        operation: "create",
+        data: data,
+        options: options,
+      });
+
+      console.log("✅ Tarea encolada exitosamente:", result.taskId);
 
       res.status(201).json(result);
     } catch (error) {
-      console.error("Error in saveRecord:", error);
+      console.error("Error in universalSave:", error);
       res.status(500).json({
         success: false,
         message: "Error saving record",
@@ -67,7 +82,8 @@ const queueController = {
     }
   },
 
-  updateRecord: async (req, res) => {
+  // MÉTODO UNIVERSAL PARA ACTUALIZAR
+  universalUpdate: async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -81,18 +97,27 @@ const queueController = {
       const { queueName, model, id } = req.params;
       const { data, options = {} } = req.body;
 
+      console.log("🔄 Universal Update - Parámetros recibidos:");
+      console.log("  queueName:", queueName);
+      console.log("  model:", model);
+      console.log("  id:", id);
+      console.log("  data:", JSON.stringify(data, null, 2));
+
       const service = getQueueService();
-      const result = await service.updateRecord(
-        queueName,
-        model,
-        parseInt(id),
-        data,
-        options
-      );
+
+      const result = await service.enqueueTask(queueName, {
+        type: "database",
+        model: model,
+        operation: "update",
+        data: { id: parseInt(id), updateData: data },
+        options: options,
+      });
+
+      console.log("✅ Tarea de actualización encolada:", result.taskId);
 
       res.status(200).json(result);
     } catch (error) {
-      console.error("Error in updateRecord:", error);
+      console.error("Error in universalUpdate:", error);
       res.status(500).json({
         success: false,
         message: "Error updating record",
@@ -101,22 +126,41 @@ const queueController = {
     }
   },
 
-  deleteRecord: async (req, res) => {
+  // MÉTODO UNIVERSAL PARA ELIMINAR
+  universalDelete: async (req, res) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: "Validation errors",
+          errors: errors.array(),
+        });
+      }
+
       const { queueName, model, id } = req.params;
       const { options = {} } = req.body;
 
+      console.log("🔄 Universal Delete - Parámetros recibidos:");
+      console.log("  queueName:", queueName);
+      console.log("  model:", model);
+      console.log("  id:", id);
+
       const service = getQueueService();
-      const result = await service.deleteRecord(
-        queueName,
-        model,
-        parseInt(id),
-        options
-      );
+
+      const result = await service.enqueueTask(queueName, {
+        type: "database",
+        model: model,
+        operation: "delete",
+        data: { id: parseInt(id) },
+        options: options,
+      });
+
+      console.log("✅ Tarea de eliminación encolada:", result.taskId);
 
       res.status(200).json(result);
     } catch (error) {
-      console.error("Error in deleteRecord:", error);
+      console.error("Error in universalDelete:", error);
       res.status(500).json({
         success: false,
         message: "Error deleting record",
@@ -125,7 +169,8 @@ const queueController = {
     }
   },
 
-  bulkSave: async (req, res) => {
+  // MÉTODO UNIVERSAL PARA OPERACIONES MASIVAS
+  universalBulk: async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -137,24 +182,54 @@ const queueController = {
       }
 
       const { queueName, model } = req.params;
-      const { records, options = {} } = req.body;
+      const { operation, data, options = {} } = req.body;
 
-      if (!Array.isArray(records) || records.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Records array is required and must not be empty",
-        });
-      }
+      console.log("🔄 Universal Bulk - Parámetros recibidos:");
+      console.log("  queueName:", queueName);
+      console.log("  model:", model);
+      console.log("  operation:", operation);
+      console.log(
+        "  data count:",
+        Array.isArray(data) ? data.length : "not array"
+      );
 
       const service = getQueueService();
-      const result = await service.bulkSave(queueName, model, records, options);
+
+      let taskData = {
+        type: "database",
+        model: model,
+        operation: `bulk${operation}`,
+        options: options,
+      };
+
+      // Preparar datos según la operación
+      switch (operation) {
+        case "create":
+          taskData.data = { records: data };
+          break;
+        case "update":
+          taskData.data = { where: data.where, updateData: data.updateData };
+          break;
+        case "delete":
+          taskData.data = { where: data.where };
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: `Operación bulk '${operation}' no soportada`,
+          });
+      }
+
+      const result = await service.enqueueTask(queueName, taskData);
+
+      console.log("✅ Tarea bulk encolada:", result.taskId);
 
       res.status(201).json(result);
     } catch (error) {
-      console.error("Error in bulkSave:", error);
+      console.error("Error in universalBulk:", error);
       res.status(500).json({
         success: false,
-        message: "Error bulk saving records",
+        message: "Error processing bulk operation",
         error: error.message,
       });
     }
