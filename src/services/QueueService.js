@@ -3,7 +3,10 @@ const { QueueManager } = require('../queue/QueueManager');
 class QueueService {
   constructor() {
     this.queueManager = new QueueManager({
-      persistDir: process.env.QUEUE_PERSIST_DIR || './storage/queues',
+      redisHost: process.env.REDIS_HOST || 'localhost',
+      redisPort: process.env.REDIS_PORT || 6379,
+      redisPassword: process.env.REDIS_PASSWORD,
+      redisDb: process.env.REDIS_DB || 0,
       maxRetries: parseInt(process.env.QUEUE_MAX_RETRIES) || 3,
       retryDelay: parseInt(process.env.QUEUE_RETRY_DELAY) || 1000
     });
@@ -16,7 +19,7 @@ class QueueService {
     await this.queueManager.initialize();
     this.initialized = true;
     
-    console.log('✅ QueueService initialized');
+    console.log('✅ QueueService with Redis initialized');
   }
 
   async enqueueTask(queueName, taskData) {
@@ -136,7 +139,8 @@ class QueueService {
       workerId,
       queueName,
       threadCount,
-      message: 'Worker created successfully'
+      message: 'Worker created successfully',
+      worker: worker
     };
   }
 
@@ -148,6 +152,130 @@ class QueueService {
       success: true,
       workerId,
       message: 'Worker stopped successfully'
+    };
+  }
+
+  async getWorker(workerId) {
+    if (!this.initialized) await this.initialize();
+    
+    const worker = this.queueManager.workers.get(workerId);
+    return worker;
+  }
+
+  async pauseWorker(workerId) {
+    if (!this.initialized) await this.initialize();
+    
+    const worker = this.queueManager.workers.get(workerId);
+    if (!worker) {
+      throw new Error(`Worker '${workerId}' not found`);
+    }
+
+    worker.pause();
+    return {
+      success: true,
+      workerId,
+      message: 'Worker paused successfully'
+    };
+  }
+
+  async resumeWorker(workerId) {
+    if (!this.initialized) await this.initialize();
+    
+    const worker = this.queueManager.workers.get(workerId);
+    if (!worker) {
+      throw new Error(`Worker '${workerId}' not found`);
+    }
+
+    worker.resume();
+    return {
+      success: true,
+      workerId,
+      message: 'Worker resumed successfully'
+    };
+  }
+
+  async startWorker(workerId) {
+    if (!this.initialized) await this.initialize();
+    
+    const worker = this.queueManager.workers.get(workerId);
+    if (!worker) {
+      throw new Error(`Worker '${workerId}' not found`);
+    }
+
+    await worker.start();
+    return {
+      success: true,
+      workerId,
+      message: 'Worker started successfully'
+    };
+  }
+
+  async getWorkerStats(workerId) {
+    if (!this.initialized) await this.initialize();
+    
+    const worker = this.queueManager.workers.get(workerId);
+    if (!worker) {
+      throw new Error(`Worker '${workerId}' not found`);
+    }
+
+    return {
+      success: true,
+      stats: worker.getStats()
+    };
+  }
+
+  async getAllWorkers() {
+    if (!this.initialized) await this.initialize();
+    
+    const workers = [];
+    for (const [workerId, worker] of this.queueManager.workers.entries()) {
+      workers.push({
+        id: workerId,
+        ...worker.getStats()
+      });
+    }
+
+    return {
+      success: true,
+      workers
+    };
+  }
+
+  async pauseQueueWorkers(queueName) {
+    if (!this.initialized) await this.initialize();
+    
+    const pausedWorkers = [];
+    for (const [workerId, worker] of this.queueManager.workers.entries()) {
+      if (worker.queue.name === queueName) {
+        worker.pause();
+        pausedWorkers.push(workerId);
+      }
+    }
+
+    return {
+      success: true,
+      queueName,
+      pausedWorkers,
+      message: `Paused ${pausedWorkers.length} workers for queue '${queueName}'`
+    };
+  }
+
+  async resumeQueueWorkers(queueName) {
+    if (!this.initialized) await this.initialize();
+    
+    const resumedWorkers = [];
+    for (const [workerId, worker] of this.queueManager.workers.entries()) {
+      if (worker.queue.name === queueName) {
+        worker.resume();
+        resumedWorkers.push(workerId);
+      }
+    }
+
+    return {
+      success: true,
+      queueName,
+      resumedWorkers,
+      message: `Resumed ${resumedWorkers.length} workers for queue '${queueName}'`
     };
   }
 
@@ -205,65 +333,130 @@ class QueueService {
     };
   }
 
-  
-async getQueueTasks(queueName, options = {}) {
-  if (!this.initialized) await this.initialize();
-  
-  const queue = await this.queueManager.getQueue(queueName);
-  if (!queue) {
-    throw new Error(`Queue '${queueName}' not found`);
+  async getQueueTasks(queueName, options = {}) {
+    if (!this.initialized) await this.initialize();
+    
+    const queue = await this.queueManager.getQueue(queueName);
+    if (!queue) {
+      throw new Error(`Queue '${queueName}' not found`);
+    }
+
+    const { status, limit = 50, offset = 0 } = options;
+    
+    const result = await queue.getQueueTasks({ status, limit, offset });
+
+    return {
+      success: true,
+      tasks: result.tasks,
+      pagination: {
+        limit,
+        offset,
+        returned: result.tasks.length,
+        total: result.total
+      }
+    };
   }
 
-  const { status, limit = 50, offset = 0 } = options;
-  
-  // SOLUCIÓN SIMPLE: Limitar procesamiento y evitar memory leak
-  const tasks = [];
-  let processed = 0;
-  const maxProcess = 100; // Procesar máximo 100 tareas
-  const maxReturn = Math.min(limit, 50); // Devolver máximo 50
-  
-  // Convertir Map a Array de forma segura
-  const taskArray = Array.from(queue.taskHistory.entries()).slice(0, maxProcess);
-  
-  for (const [taskId, task] of taskArray) {
-    // Filtrar por status si se especifica
-    if (status && task.status !== status) continue;
+  // Redis specific methods
+  async clearQueue(queueName, status = null) {
+    if (!this.initialized) await this.initialize();
     
-    // Aplicar offset
-    if (processed < offset) {
-      processed++;
-      continue;
+    const queue = await this.queueManager.getQueue(queueName);
+    if (!queue) {
+      throw new Error(`Queue '${queueName}' not found`);
     }
-    
-    // Aplicar limit
-    if (tasks.length >= maxReturn) break;
-    
-    tasks.push({
-      id: task.id,
-      status: task.status,
-      model: task.model,
-      operation: task.operation,
-      createdAt: task.createdAt,
-      startedAt: task.startedAt,
-      completedAt: task.completedAt,
-      error: task.error,
-      retryCount: task.retryCount
-    });
-    
-    processed++;
+
+    let clearedCount = 0;
+
+    if (status) {
+      // Clear specific status
+      let key;
+      switch(status) {
+        case 'pending':
+          key = queue.keys.pending;
+          break;
+        case 'processing':
+          key = queue.keys.processing;
+          break;
+        case 'completed':
+          key = queue.keys.completed;
+          break;
+        case 'failed':
+        case 'error':
+          key = queue.keys.failed;
+          break;
+        default:
+          throw new Error(`Invalid status: ${status}`);
+      }
+      
+      clearedCount = await queue.redis.llen(key);
+      await queue.redis.del(key);
+      
+      // Update stats
+      await queue.redis.hset(queue.keys.stats, status, 0);
+      
+    } else {
+      // Clear all
+      const allKeys = Object.values(queue.keys);
+      const pipeline = queue.redis.pipeline();
+      
+      for (const key of allKeys) {
+        if (key !== queue.keys.stats) {
+          pipeline.del(key);
+        }
+      }
+      
+      // Reset stats
+      pipeline.hmset(queue.keys.stats, {
+        total: 0,
+        pending: 0,
+        processing: 0,
+        completed: 0,
+        failed: 0,
+        error: 0
+      });
+      
+      await pipeline.exec();
+      clearedCount = 'all';
+    }
+
+    return {
+      success: true,
+      queueName,
+      status: status || 'all',
+      clearedCount,
+      message: `Queue ${status || 'completely'} cleared successfully`
+    };
   }
 
-  return {
-    success: true,
-    tasks,
-    pagination: {
-      limit: maxReturn,
-      offset,
-      returned: tasks.length,
-      total: Math.min(queue.taskHistory.size, maxProcess)
-    }
-  };
-}
+  async getRedisInfo() {
+    if (!this.initialized) await this.initialize();
+    
+    const info = await this.queueManager.redis.info();
+    const memory = await this.queueManager.redis.info('memory');
+    
+    return {
+      success: true,
+      redis: {
+        status: 'connected',
+        info: info.split('\n').reduce((acc, line) => {
+          if (line.includes(':')) {
+            const [key, value] = line.split(':');
+            acc[key] = value;
+          }
+          return acc;
+        }, {}),
+        memory: memory.split('\n').reduce((acc, line) => {
+          if (line.includes(':')) {
+            const [key, value] = line.split(':');
+            acc[key] = value;
+          }
+          return acc;
+        }, {})
+      }
+    };
+  }
+
   validateTaskData(taskData) {
     const { type, model, operation, data } = taskData;
     
@@ -283,10 +476,13 @@ async getQueueTasks(queueName, options = {}) {
     
     await this.queueManager.shutdown();
     this.initialized = false;
-    console.log('✅ QueueService shutdown complete');
+    console.log('✅ QueueService with Redis shutdown complete');
   }
 
+  // Event listeners (Redis pub/sub could be implemented here)
   onTaskCompleted(queueName, callback) {
+    // For Redis implementation, we'd typically use Redis pub/sub
+    // For now, keeping the EventEmitter approach
     this.queueManager.on(`${queueName}:task:completed`, callback);
   }
 

@@ -33,7 +33,7 @@ const registerValidation = [
     .isLength({ min: 6, max: 128 })
     .withMessage('La contraseña debe tener entre 6 y 128 caracteres'),
 
-  body('confirmPassword')
+  body('')
     .notEmpty()
     .withMessage('La confirmación de contraseña es requerida')
     .custom(async (value, { req }) => {

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Básico - Sistema de Colas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.success { background: #28a745; }
+        .button.warning { background: #ffc107; color: black; }
+        .button.danger { background: #dc3545; }
+        
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-width: 300px;
+        }
+        .log {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Colas - Dashboard Básico</h1>
+        
+        <!-- Health Check -->
+        <div class="card">
+            <h2>Estado del Sistema</h2>
+            <button class="button" onclick="checkHealth()">Verificar Estado</button>
+            <div id="healthStatus"></div>
+        </div>
+
+        <!-- Test de Conexión -->
+        <div class="card">
+            <h2>Test de Conexión</h2>
+            <p>Prueba diferentes endpoints para ver cuáles funcionan:</p>
+            <button class="button" onclick="testEndpoint('/api/v1/queue/health')">Test Health</button>
+            <button class="button" onclick="testEndpoint('/api/v1/queue/queues/stats/all')">Test Stats</button>
+            <button class="button" onclick="testEndpoint('/api/v1/queue/queues')">Test Queues</button>
+            <button class="button" onclick="testEndpoint('/queue/health')">Test Queue Health</button>
+        </div>
+
+        <!-- Crear Cola -->
+        <div class="card">
+            <h2>Crear Cola</h2>
+            <div class="form-group">
+                <label>Nombre de la Cola:</label>
+                <input type="text" id="queueName" placeholder="test_queue" value="test_queue">
+            </div>
+            <button class="button success" onclick="createQueue()">Crear Cola</button>
+        </div>
+
+        <!-- Crear Worker -->
+        <div class="card">
+            <h2>Crear Worker</h2>
+            <div class="form-group">
+                <label>Cola:</label>
+                <input type="text" id="workerQueue" placeholder="test_queue" value="test_queue">
+            </div>
+            <div class="form-group">
+                <label>Threads:</label>
+                <input type="number" id="threadCount" value="2" min="1" max="10">
+            </div>
+            <button class="button success" onclick="createWorker()">Crear Worker</button>
+        </div>
+
+        <!-- Agregar Datos de Prueba -->
+        <div class="card">
+            <h2>Agregar Datos de Prueba</h2>
+            <div class="form-group">
+                <label>Cola:</label>
+                <input type="text" id="testQueue" placeholder="test_queue" value="test_queue">
+            </div>
+            <div class="form-group">
+                <label>Modelo:</label>
+                <select id="testModel">
+                    <option value="Docente">Docente</option>
+                    <option value="Estudiante">Estudiante</option>
+                    <option value="Materia">Materia</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Datos JSON:</label>
+                <input type="text" id="testData" placeholder='{"nombre": "Test", "email": "test@test.com"}' value='{"nombre": "Test Docente", "email": "test@universidad.com"}'>
+            </div>
+            <button class="button" onclick="addTestData()">Agregar Datos</button>
+        </div>
+
+        <!-- Logs -->
+        <div class="card">
+            <h2>Logs del Sistema</h2>
+            <button class="button warning" onclick="clearLogs()">Limpiar Logs</button>
+            <div class="log" id="logs">Sistema iniciado...\n</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración dinámica - probará diferentes bases
+        const POSSIBLE_BASES = [
+            'http://localhost:3000/api/v1/queue',
+            'http://localhost:3000/queue',  
+            'http://localhost:3000/api/v1',
+            'http://localhost:3000'
+        ];
+        
+        let currentBase = POSSIBLE_BASES[0];
+
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logs.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').textContent = 'Logs limpiados...\n';
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            const url = currentBase + endpoint;
+            log(`Llamando: ${url}`);
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const text = await response.text();
+                let data;
+                
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    data = { raw: text };
+                }
+                
+                if (response.ok) {
+                    log(`✅ ${response.status}: ${JSON.stringify(data)}`, 'success');
+                    return { success: true, data };
+                } else {
+                    log(`❌ ${response.status}: ${text}`, 'error');
+                    return { success: false, error: text, status: response.status };
+                }
+            } catch (error) {
+                log(`❌ Error de conexión: ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testEndpoint(endpoint) {
+            log(`Probando endpoint: ${endpoint}`);
+            
+            // Probar con diferentes bases
+            for (const base of POSSIBLE_BASES) {
+                const url = base + endpoint;
+                log(`Intentando: ${url}`);
+                
+                try {
+                    const response = await fetch(url);
+                    const text = await response.text();
+                    
+                    if (response.ok) {
+                        currentBase = base; // Actualizar base exitosa
+                        log(`✅ FUNCIONA: ${url} - Status: ${response.status}`, 'success');
+                        log(`Respuesta: ${text.substring(0, 200)}...`);
+                        return;
+                    } else {
+                        log(`⚠️ ${url} - Status: ${response.status}`);
+                    }
+                } catch (error) {
+                    log(`❌ ${url} - Error: ${error.message}`);
+                }
+            }
+            
+            log(`❌ Ningún endpoint funcionó para: ${endpoint}`, 'error');
+        }
+
+        async function checkHealth() {
+            const healthDiv = document.getElementById('healthStatus');
+            healthDiv.innerHTML = '<p>Verificando...</p>';
+            
+            const result = await apiCall('/health');
+            
+            if (result.success) {
+                healthDiv.innerHTML = `<div class="status success">Sistema OK</div><pre>${JSON.stringify(result.data, null, 2)}</pre>`;
+            } else {
+                healthDiv.innerHTML = `<div class="status error">Error: ${result.error}</div>`;
+            }
+        }
+
+        async function createQueue() {
+            const queueName = document.getElementById('queueName').value.trim();
+            if (!queueName) {
+                log('❌ Ingrese un nombre para la cola', 'error');
+                return;
+            }
+
+            const result = await apiCall(`/queues/${queueName}`, {
+                method: 'POST',
+                body: JSON.stringify({})
+            });
+
+            if (result.success) {
+                log(`✅ Cola '${queueName}' creada exitosamente`, 'success');
+            }
+        }
+
+        async function createWorker() {
+            const queueName = document.getElementById('workerQueue').value.trim();
+            const threadCount = parseInt(document.getElementById('threadCount').value);
+            
+            if (!queueName) {
+                log('❌ Ingrese un nombre de cola', 'error');
+                return;
+            }
+
+            // Intentar diferentes endpoints de workers
+            const workerEndpoints = [
+                `/queues/${queueName}/workers`,
+                `/workers`,
+                `/${queueName}/workers`
+            ];
+
+            for (const endpoint of workerEndpoints) {
+                log(`Intentando crear worker en: ${endpoint}`);
+                
+                const result = await apiCall(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        threadCount: threadCount,
+                        autoStart: false
+                    })
+                });
+
+                if (result.success) {
+                    log(`✅ Worker creado exitosamente`, 'success');
+                    return;
+                }
+            }
+            
+            log('❌ No se pudo crear el worker con ningún endpoint', 'error');
+        }
+
+        async function addTestData() {
+            const queueName = document.getElementById('testQueue').value.trim();
+            const model = document.getElementById('testModel').value;
+            const dataStr = document.getElementById('testData').value.trim();
+            
+            if (!queueName || !dataStr) {
+                log('❌ Complete todos los campos', 'error');
+                return;
+            }
+
+            let data;
+            try {
+                data = JSON.parse(dataStr);
+            } catch (error) {
+                log('❌ Datos JSON inválidos', 'error');
+                return;
+            }
+
+            // Intentar diferentes endpoints para guardar datos
+            const saveEndpoints = [
+                `/queues/${queueName}/${model}/save`,
+                `/${queueName}/${model}/save`,
+                `/queues/${queueName}/tasks`,
+                `/save`
+            ];
+
+            for (const endpoint of saveEndpoints) {
+                log(`Intentando guardar en: ${endpoint}`);
+                
+                const result = await apiCall(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify({ data })
+                });
+
+                if (result.success) {
+                    log(`✅ Datos guardados exitosamente`, 'success');
+                    return;
+                }
+            }
+            
+            log('❌ No se pudieron guardar los datos con ningún endpoint', 'error');
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Dashboard cargado. Probando conectividad...');
+            testEndpoint('/health');
+        });
+    </script>
+</body>
+</html>
