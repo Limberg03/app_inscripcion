@@ -1,4 +1,4 @@
-const { GrupoMateria, Materia, Docente, Horario, Nota } = require('../models');
+const { GrupoMateria, Materia, Docente, Horario, Nota, PlanEstudio, Nivel, Prerequisito } = require('../models');
 const { validationResult } = require('express-validator');
 
 const grupoMateriaController = {
@@ -29,22 +29,29 @@ const grupoMateriaController = {
           {
             model: Materia,
             as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos']
+            attributes: ['id', 'nombre', 'sigla', 'creditos'],
+            include: [
+              {
+                model: PlanEstudio,
+                as: 'planEstudio',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Nivel,
+                as: 'nivel',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Prerequisito,
+                as: 'prerequisitos',
+                attributes: ['id', 'materia_id', 'requiere_id']
+              }
+            ]
           },
           {
             model: Docente,
             as: 'docente',
             attributes: ['id', 'nombre', 'telefono']
-          },
-          {
-            model: Horario,
-            as: 'horarios',
-            attributes: ['id', 'fechaIni', 'fechaFinal']
-          },
-          {
-            model: Nota,
-            as: 'notas',
-            attributes: ['id', 'notaFinal', 'observacion']
           }
         ],
         order: [['id', 'ASC']]
@@ -78,23 +85,31 @@ const grupoMateriaController = {
           {
             model: Materia,
             as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos']
+            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            include: [
+              {
+                model: PlanEstudio,
+                as: 'planEstudio',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Nivel,
+                as: 'nivel',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Prerequisito,
+                as: 'prerequisitos',
+                attributes: ['id', 'materia_id', 'requiere_id']
+              }
+            ]
           },
           {
             model: Docente,
             as: 'docente',
             attributes: ['id', 'nombre', 'telefono']
-          },
-          {
-            model: Horario,
-            as: 'horarios',
-            attributes: ['id', 'fechaIni', 'fechaFinal']
-          },
-          {
-            model: Nota,
-            as: 'notas',
-            attributes: ['id', 'notaFinal', 'observacion']
           }
+          
         ]
       });
 
@@ -163,7 +178,24 @@ const grupoMateriaController = {
           {
             model: Materia,
             as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos']
+            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            include: [
+              {
+                model: PlanEstudio,
+                as: 'planEstudio',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Nivel,
+                as: 'nivel',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Prerequisito,
+                as: 'prerequisitos',
+                attributes: ['id', 'materia_id', 'requiere_id']
+              }
+            ]
           },
           {
             model: Docente,
@@ -245,7 +277,24 @@ const grupoMateriaController = {
           {
             model: Materia,
             as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos']
+            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            include: [
+              {
+                model: PlanEstudio,
+                as: 'planEstudio',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Nivel,
+                as: 'nivel',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Prerequisito,
+                as: 'prerequisitos',
+                attributes: ['id', 'materia_id', 'requiere_id']
+              }
+            ]
           },
           {
             model: Docente,
@@ -349,7 +398,24 @@ const grupoMateriaController = {
           {
             model: Materia,
             as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos']
+            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            include: [
+              {
+                model: PlanEstudio,
+                as: 'planEstudio',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Nivel,
+                as: 'nivel',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Prerequisito,
+                as: 'prerequisitos',
+                attributes: ['id', 'materia_id', 'requiere_id']
+              }
+            ]
           },
           {
             model: Docente,
@@ -389,6 +455,28 @@ const grupoMateriaController = {
       const grupos = await GrupoMateria.findAll({
         where: { materiaId },
         include: [
+          {
+            model: Materia,
+            as: 'materia',
+            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            include: [
+              {
+                model: PlanEstudio,
+                as: 'planEstudio',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Nivel,
+                as: 'nivel',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Prerequisito,
+                as: 'prerequisitos',
+                attributes: ['id', 'materia_id', 'requiere_id']
+              }
+            ]
+          },
           {
             model: Docente,
             as: 'docente',
@@ -435,7 +523,24 @@ const grupoMateriaController = {
           {
             model: Materia,
             as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos']
+            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            include: [
+              {
+                model: PlanEstudio,
+                as: 'planEstudio',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Nivel,
+                as: 'nivel',
+                attributes: ['id', 'nombre']
+              },
+              {
+                model: Prerequisito,
+                as: 'prerequisitos',
+                attributes: ['id', 'materia_id', 'requiere_id']
+              }
+            ]
           },
           {
             model: Horario,

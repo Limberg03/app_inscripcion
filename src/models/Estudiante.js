@@ -8,7 +8,7 @@ const Estudiante = sequelize.define('Estudiante', {
     primaryKey: true,
     autoIncrement: true
   },
-  numero: {
+  registro: {
     type: DataTypes.STRING(20),
     allowNull: false,
     unique: true,
@@ -17,7 +17,7 @@ const Estudiante = sequelize.define('Estudiante', {
       len: [1, 20]
     }
   },
-  registro: {
+  nombre: {
     type: DataTypes.STRING(50),
     allowNull: false,
     validate: {

@@ -32,12 +32,31 @@ const Inscripcion = sequelize.define('Inscripcion', {
       model: 'estudiantes',
       key: 'id'
     }
-  }
-}, {
+  },
+  grupoMateriaId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'grupo_materia_id',
+    references: {
+      model: 'grupos_materia',
+      key: 'id'
+    }
+  },
+},
+
+ 
+
+{
   tableName: 'inscripciones',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
+   indexes: [
+    {
+      unique: true,
+      fields: ['grupo_materia_id']
+    }
+  ]
 });
 
 module.exports = Inscripcion;
