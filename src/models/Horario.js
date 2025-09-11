@@ -21,24 +21,7 @@ const Horario = sequelize.define('Horario', {
     allowNull: false,
     field: 'hora_fin'
   },
-  grupoMateriaId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'grupo_materia_id',
-    references: {
-      model: 'grupos_materia',
-      key: 'id'
-    }
-  },
-  aulaId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'aula_id',
-    references: {
-      model: 'aulas',
-      key: 'id'
-    }
-  }
+    
 }, {
   tableName: 'horarios',
   timestamps: true,

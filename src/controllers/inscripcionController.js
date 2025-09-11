@@ -1,4 +1,4 @@
-const { Inscripcion, Estudiante } = require('../models');
+const { Inscripcion, Estudiante, GrupoMateria, Materia, Docente, PlanEstudio, Nivel, Prerequisito } = require('../models');
 const { validationResult } = require('express-validator');
 
 const inscripcionController = {
@@ -19,11 +19,47 @@ const inscripcionController = {
         where,
         limit,
         offset,
-        include: [{
-          model: Estudiante,
-          as: 'estudiante',
-          attributes: ['id', 'numero', 'registro', 'telefono']
-        }],
+        include: [
+          {
+            model: Estudiante,
+            as: 'estudiante',
+            attributes: ['id', 'registro', 'nombre', 'telefono']
+          },
+          {
+            model: GrupoMateria,
+            as: 'grupoMateria',
+            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            include: [
+              {
+                model: Materia,
+                as: 'materia',
+                attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+                include: [
+                  {
+                    model: PlanEstudio,
+                    as: 'planEstudio',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Nivel,
+                    as: 'nivel',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Prerequisito,
+                    as: 'prerequisitos',
+                    attributes: ['id', 'materia_id', 'requiere_id']
+                  }
+                ]
+              },
+              {
+                model: Docente,
+                as: 'docente',
+                attributes: ['id', 'nombre', 'telefono']
+              }
+            ]
+          }
+        ],
         order: [['fecha', 'DESC']]
       });
 
@@ -51,11 +87,47 @@ const inscripcionController = {
     try {
       const { id } = req.params;
       const inscripcion = await Inscripcion.findByPk(id, {
-        include: [{
-          model: Estudiante,
-          as: 'estudiante',
-          attributes: ['id', 'numero', 'registro', 'telefono', 'fechaNac']
-        }]
+        include: [
+          {
+            model: Estudiante,
+            as: 'estudiante',
+            attributes: ['id', 'registro', 'nombre', 'telefono', 'fechaNac']
+          },
+          {
+            model: GrupoMateria,
+            as: 'grupoMateria',
+            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            include: [
+              {
+                model: Materia,
+                as: 'materia',
+                attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+                include: [
+                  {
+                    model: PlanEstudio,
+                    as: 'planEstudio',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Nivel,
+                    as: 'nivel',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Prerequisito,
+                    as: 'prerequisitos',
+                    attributes: ['id', 'materia_id', 'requiere_id']
+                  }
+                ]
+              },
+              {
+                model: Docente,
+                as: 'docente',
+                attributes: ['id', 'nombre', 'telefono']
+              }
+            ]
+          }
+        ]
       });
 
       if (!inscripcion) {
@@ -90,7 +162,7 @@ const inscripcionController = {
         });
       }
 
-      const { fecha, gestion, estudianteId } = req.body;
+      const { fecha, gestion, estudianteId, grupoMateriaId } = req.body;
 
       // Verificar que el estudiante existe
       const estudiante = await Estudiante.findByPk(estudianteId);
@@ -101,19 +173,65 @@ const inscripcionController = {
         });
       }
 
+      // Verificar que el grupo de materia existe
+      const grupoMateria = await GrupoMateria.findByPk(grupoMateriaId);
+      if (!grupoMateria) {
+        return res.status(404).json({
+          success: false,
+          message: 'Grupo de materia no encontrado'
+        });
+      }
+
       const inscripcion = await Inscripcion.create({
         fecha: fecha || new Date(),
         gestion,
-        estudianteId
+        estudianteId,
+        grupoMateriaId
       });
 
-      // Obtener la inscripción con el estudiante incluido
+      // Obtener la inscripción con todas las relaciones incluidas
       const inscripcionCompleta = await Inscripcion.findByPk(inscripcion.id, {
-        include: [{
-          model: Estudiante,
-          as: 'estudiante',
-          attributes: ['id', 'numero', 'registro', 'telefono']
-        }]
+        include: [
+          {
+            model: Estudiante,
+            as: 'estudiante',
+            attributes: ['id', 'registro', 'nombre', 'telefono']
+          },
+          {
+            model: GrupoMateria,
+            as: 'grupoMateria',
+            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            include: [
+              {
+                model: Materia,
+                as: 'materia',
+                attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+                include: [
+                  {
+                    model: PlanEstudio,
+                    as: 'planEstudio',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Nivel,
+                    as: 'nivel',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Prerequisito,
+                    as: 'prerequisitos',
+                    attributes: ['id', 'materia_id', 'requiere_id']
+                  }
+                ]
+              },
+              {
+                model: Docente,
+                as: 'docente',
+                attributes: ['id', 'nombre', 'telefono']
+              }
+            ]
+          }
+        ]
       });
 
       res.status(201).json({
@@ -143,7 +261,7 @@ const inscripcionController = {
       }
 
       const { id } = req.params;
-      const { fecha, gestion, estudianteId } = req.body;
+      const { fecha, gestion, estudianteId, grupoMateriaId } = req.body;
 
       const inscripcion = await Inscripcion.findByPk(id);
       if (!inscripcion) {
@@ -164,19 +282,67 @@ const inscripcionController = {
         }
       }
 
+      // Verificar que el grupo de materia existe si se está actualizando
+      if (grupoMateriaId) {
+        const grupoMateria = await GrupoMateria.findByPk(grupoMateriaId);
+        if (!grupoMateria) {
+          return res.status(404).json({
+            success: false,
+            message: 'Grupo de materia no encontrado'
+          });
+        }
+      }
+
       await inscripcion.update({
         fecha,
         gestion,
-        estudianteId
+        estudianteId,
+        grupoMateriaId
       });
 
-      // Obtener la inscripción actualizada con el estudiante incluido
+      // Obtener la inscripción actualizada con todas las relaciones incluidas
       const inscripcionActualizada = await Inscripcion.findByPk(id, {
-        include: [{
-          model: Estudiante,
-          as: 'estudiante',
-          attributes: ['id', 'numero', 'registro', 'telefono']
-        }]
+        include: [
+          {
+            model: Estudiante,
+            as: 'estudiante',
+            attributes: ['id', 'registro', 'nombre', 'telefono']
+          },
+          {
+            model: GrupoMateria,
+            as: 'grupoMateria',
+            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            include: [
+              {
+                model: Materia,
+                as: 'materia',
+                attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+                include: [
+                  {
+                    model: PlanEstudio,
+                    as: 'planEstudio',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Nivel,
+                    as: 'nivel',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Prerequisito,
+                    as: 'prerequisitos',
+                    attributes: ['id', 'materia_id', 'requiere_id']
+                  }
+                ]
+              },
+              {
+                model: Docente,
+                as: 'docente',
+                attributes: ['id', 'nombre', 'telefono']
+              }
+            ]
+          }
+        ]
       });
 
       res.status(200).json({
@@ -236,11 +402,47 @@ const inscripcionController = {
 
       const inscripciones = await Inscripcion.findAll({
         where: { estudianteId },
-        include: [{
-          model: Estudiante,
-          as: 'estudiante',
-          attributes: ['id', 'numero', 'registro', 'telefono']
-        }],
+        include: [
+          {
+            model: Estudiante,
+            as: 'estudiante',
+            attributes: ['id', 'registro', 'nombre', 'telefono']
+          },
+          {
+            model: GrupoMateria,
+            as: 'grupoMateria',
+            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            include: [
+              {
+                model: Materia,
+                as: 'materia',
+                attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+                include: [
+                  {
+                    model: PlanEstudio,
+                    as: 'planEstudio',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Nivel,
+                    as: 'nivel',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Prerequisito,
+                    as: 'prerequisitos',
+                    attributes: ['id', 'materia_id', 'requiere_id']
+                  }
+                ]
+              },
+              {
+                model: Docente,
+                as: 'docente',
+                attributes: ['id', 'nombre', 'telefono']
+              }
+            ]
+          }
+        ],
         order: [['gestion', 'DESC'], ['fecha', 'DESC']]
       });
 

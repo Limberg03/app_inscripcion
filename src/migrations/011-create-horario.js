@@ -21,26 +21,8 @@ module.exports = {
         type: Sequelize.TIME,
         allowNull: false
       },
-      grupo_materia_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'grupos_materia',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
-      },
-      aula_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'aulas',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT'
-      },
+      
+    
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,
@@ -55,8 +37,6 @@ module.exports = {
 
     // Crear índices
     await queryInterface.addIndex('horarios', ['fecha']);
-    await queryInterface.addIndex('horarios', ['grupo_materia_id']);
-    await queryInterface.addIndex('horarios', ['aula_id']);
     await queryInterface.addIndex('horarios', ['hora_inicio']);
     await queryInterface.addIndex('horarios', ['hora_fin']);
   },

@@ -32,6 +32,16 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
+       grupo_materia_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'grupos_materia',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+      },
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,
@@ -46,11 +56,13 @@ module.exports = {
 
     // Crear índices para mejorar el rendimiento
     await queryInterface.addIndex('inscripciones', ['estudiante_id']);
+    await queryInterface.addIndex('inscripciones', ['grupo_materia_id']);
+
     await queryInterface.addIndex('inscripciones', ['gestion']);
     await queryInterface.addIndex('inscripciones', ['fecha']);
     
     // Índice compuesto para consultas por estudiante y gestión
-    await queryInterface.addIndex('inscripciones', ['estudiante_id', 'gestion']);
+    await queryInterface.addIndex('inscripciones', ['estudiante_id', 'gestion','grupo_materia_id']);
   },
 
   down: async (queryInterface, Sequelize) => {

@@ -80,25 +80,19 @@ GrupoMateria.belongsTo(Docente, {
   as: 'docente' 
 });
 
-// GrupoMateria -> Horario (1:N)
-GrupoMateria.hasMany(Horario, { 
+
+
+// GrupoMateria -> Inscripcion (1:N)
+GrupoMateria.hasMany(Inscripcion, { 
   foreignKey: 'grupoMateriaId', 
-  as: 'horarios' 
+  as: 'inscripciones' 
 });
-Horario.belongsTo(GrupoMateria, { 
+Inscripcion.belongsTo(GrupoMateria, { 
   foreignKey: 'grupoMateriaId', 
   as: 'grupoMateria' 
 });
 
-// Aula -> Horario (1:N)
-Aula.hasMany(Horario, { 
-  foreignKey: 'aulaId', 
-  as: 'horarios' 
-});
-Horario.belongsTo(Aula, { 
-  foreignKey: 'aulaId', 
-  as: 'aula' 
-});
+
 
 // GrupoMateria -> Nota (1:N)
 GrupoMateria.hasMany(Nota, { 

@@ -31,18 +31,13 @@ const materiaController = {
           {
             model: Nivel,
             as: 'nivel',
-            attributes: ['id', 'numNivel']
+            attributes: ['id', 'nombre']
           },
           {
             model: Prerequisito,
             as: 'prerequisitos',
-            attributes: ['id']
-          },
-          {
-            model: GrupoMateria,
-            as: 'gruposMateria',
-            attributes: ['id', 'numero', 'estado']
-          }
+            attributes: ['id','materia_id', 'requiere_id']
+          }          
         ],
         order: [['id', 'ASC']]
       });

@@ -55,8 +55,9 @@ module.exports = {
     await queryInterface.addIndex('grupos_materia', ['materia_id']);
     await queryInterface.addIndex('grupos_materia', ['docente_id']);
     await queryInterface.addIndex('grupos_materia', ['estado']);
-  },
 
+  },
+    
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('grupos_materia');
   }

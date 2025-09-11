@@ -14,7 +14,7 @@ const Nota = sequelize.define('Nota', {
       min: 0,
       max: 100
     }
-  },
+  },   
   observacion: {
     type: DataTypes.TEXT,
     allowNull: true

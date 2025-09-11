@@ -20,7 +20,7 @@ module.exports = {
     const gruposMateria = await getGruposMateria();
     
     const estudiantes = await queryInterface.sequelize.query(
-      'SELECT id, numero FROM estudiantes ORDER BY id',
+      'SELECT id, registro FROM estudiantes ORDER BY id',
       { type: Sequelize.QueryTypes.SELECT }
     );
 

@@ -83,11 +83,11 @@ const estudianteController = {
         });
       }
 
-      const { numero, registro, telefono, fechaNac } = req.body;
+      const { registro, nombre, telefono, fechaNac } = req.body;
       
       const estudiante = await Estudiante.create({
-        numero,
         registro,
+        nombre,
         telefono,
         fechaNac
       });
@@ -126,7 +126,7 @@ const estudianteController = {
       }
 
       const { id } = req.params;
-      const { numero, registro, telefono, fechaNac } = req.body;
+      const { registro, nombre, telefono, fechaNac } = req.body;
 
       const estudiante = await Estudiante.findByPk(id);
       if (!estudiante) {
@@ -137,8 +137,8 @@ const estudianteController = {
       }
 
       await estudiante.update({
-        numero,
         registro,
+        nombre,
         telefono,
         fechaNac
       });

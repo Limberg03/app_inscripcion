@@ -9,12 +9,12 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      numero: {
+      registro: {
         type: Sequelize.STRING(20),
         allowNull: false,
         unique: true
       },
-      registro: {
+      nombre: {
         type: Sequelize.STRING(50),
         allowNull: false
       },
@@ -39,8 +39,8 @@ module.exports = {
     });
 
     // Crear índices
-    await queryInterface.addIndex('estudiantes', ['numero']);
     await queryInterface.addIndex('estudiantes', ['registro']);
+    await queryInterface.addIndex('estudiantes', ['nombre']);
   },
 
   down: async (queryInterface, Sequelize) => {
