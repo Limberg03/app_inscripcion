@@ -17,8 +17,7 @@ const inscripcionController = {
 
       const inscripciones = await Inscripcion.findAndCountAll({
         where,
-        limit,
-        offset,
+        
         include: [
           {
             model: Estudiante,
@@ -28,12 +27,12 @@ const inscripcionController = {
           {
             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            attributes: ['id', 'grupo', 'estado'],
             include: [
               {
                 model: Materia,
                 as: 'materia',
-                attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+                attributes: ['id', 'nombre', 'sigla', 'creditos'],
                 include: [
                   {
                     model: PlanEstudio,
@@ -96,7 +95,7 @@ const inscripcionController = {
           {
             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            attributes: ['id', 'grupo', 'estado', 'materiaId', 'docenteId'],
             include: [
               {
                 model: Materia,
@@ -200,7 +199,7 @@ const inscripcionController = {
           {
             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            attributes: ['id', 'grupo', 'estado', 'materiaId', 'docenteId'],
             include: [
               {
                 model: Materia,
@@ -311,7 +310,7 @@ const inscripcionController = {
           {
             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            attributes: ['id', 'grupo', 'estado', 'materiaId', 'docenteId'],
             include: [
               {
                 model: Materia,
@@ -411,7 +410,7 @@ const inscripcionController = {
           {
             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado', 'materiaId', 'docenteId'],
+            attributes: ['id', 'grupo', 'estado', 'materiaId', 'docenteId'],
             include: [
               {
                 model: Materia,

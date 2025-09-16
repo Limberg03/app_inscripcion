@@ -5,7 +5,7 @@ module.exports = {
 
     const getGruposMateria = async () => {
       const result = await queryInterface.sequelize.query(
-        'SELECT id, numero, materia_id FROM grupos_materia ORDER BY id',
+        'SELECT id, grupo, materia_id FROM grupos_materia ORDER BY id',
         { type: Sequelize.QueryTypes.SELECT }
       );
       if (result.length === 0) {

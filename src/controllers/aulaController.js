@@ -22,14 +22,9 @@ const aulaController = {
 
       const aulas = await Aula.findAndCountAll({
         where,
-        limit,
-        offset,
-        include: [{
-          model: Horario,
-          as: 'horarios',
-          attributes: ['id', 'fechaIni', 'fechaFinal']
-        }],
-        order: [['codigo', 'ASC']]
+   
+       
+        order: [['nombre', 'ASC']]
       });
 
       res.status(200).json({
@@ -56,11 +51,7 @@ const aulaController = {
     try {
       const { id } = req.params;
       const aula = await Aula.findByPk(id, {
-        include: [{
-          model: Horario,
-          as: 'horarios',
-          attributes: ['id', 'fechaIni', 'fechaFinal']
-        }]
+       
       });
 
       if (!aula) {
@@ -95,10 +86,10 @@ const aulaController = {
         });
       }
 
-      const { codigo, capacidad, estado } = req.body;
+      const { nombre, capacidad, estado } = req.body;
       
       const aula = await Aula.create({
-        codigo,
+        nombre,
         capacidad,
         estado: estado !== undefined ? estado : true
       });
@@ -137,7 +128,7 @@ const aulaController = {
       }
 
       const { id } = req.params;
-      const { codigo, capacidad, estado } = req.body;
+      const { nombre, capacidad, estado } = req.body;
 
       const aula = await Aula.findByPk(id);
       if (!aula) {
@@ -148,7 +139,7 @@ const aulaController = {
       }
 
       await aula.update({
-        codigo,
+        nombre,
         capacidad,
         estado
       });
@@ -260,7 +251,7 @@ const aulaController = {
 
       const aulas = await Aula.findAll({
         where,
-        order: [['capacidad', 'ASC'], ['codigo', 'ASC']]
+        order: [['capacidad', 'ASC'], ['nombre', 'ASC']]
       });
 
       res.status(200).json({

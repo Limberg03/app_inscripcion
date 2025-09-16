@@ -7,8 +7,8 @@ const Horario = sequelize.define('Horario', {
     primaryKey: true,
     autoIncrement: true
   },
-  fecha: {
-    type: DataTypes.DATE,
+  dia: {
+    type: DataTypes.STRING(80),
     allowNull: false
   },
   horaInicio: {

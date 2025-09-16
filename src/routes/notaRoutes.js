@@ -23,7 +23,5 @@ router.delete('/:id',  notaController.delete);
 // Obtener notas por grupo de materia
 router.get('/grupo-materia/:grupoMateriaId',  notaController.getByGrupoMateria);
 
-// Obtener notas por inscripción
-router.get('/inscripcion/:inscripcionId',  notaController.getByInscripcion);
 
 module.exports = router;

@@ -71,10 +71,10 @@ router.get('/', (req, res) => {
   });
 });
 
-router.use('/auth', authRoutes);
+//router.use('/auth', authRoutes);
 
 
-router.use(authMiddleware);
+//router.use(authMiddleware);
 
 router.use('/estudiantes', estudianteRoutes);
 router.use('/inscripciones', inscripcionRoutes);

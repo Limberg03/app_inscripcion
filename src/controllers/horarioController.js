@@ -1,4 +1,4 @@
-const { Horario, GrupoMateria, Aula } = require('../models');
+const { Horario } = require('../models');
 const { validationResult } = require('express-validator');
 
 const horarioController = {
@@ -8,33 +8,10 @@ const horarioController = {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const offset = (page - 1) * limit;
-      const { grupoMateriaId, aulaId } = req.query;
-
-      const where = {};
-      if (grupoMateriaId) {
-        where.grupoMateriaId = grupoMateriaId;
-      }
-      if (aulaId) {
-        where.aulaId = aulaId;
-      }
 
       const horarios = await Horario.findAndCountAll({
-        where,
-        limit,
-        offset,
-        include: [
-          {
-            model: GrupoMateria,
-            as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
-          },
-          {
-            model: Aula,
-            as: 'aula',
-            attributes: ['id', 'codigo', 'capacidad']
-          }
-        ],
-        order: [['fechaIni', 'ASC']]
+       
+        order: [['dia', 'ASC'], ['horaInicio', 'ASC']]
       });
 
       res.status(200).json({
@@ -60,20 +37,7 @@ const horarioController = {
   getById: async (req, res) => {
     try {
       const { id } = req.params;
-      const horario = await Horario.findByPk(id, {
-        include: [
-          {
-            model: GrupoMateria,
-            as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
-          },
-          {
-            model: Aula,
-            as: 'aula',
-            attributes: ['id', 'codigo', 'capacidad']
-          }
-        ]
-      });
+      const horario = await Horario.findByPk(id);
 
       if (!horario) {
         return res.status(404).json({
@@ -107,45 +71,27 @@ const horarioController = {
         });
       }
 
-      const { fechaIni, fechaFinal, grupoMateriaId, aulaId } = req.body;
+      const { dia, horaInicio, horaFin } = req.body;
 
-      // Verificar que el grupo de materia existe
-      const grupoMateria = await GrupoMateria.findByPk(grupoMateriaId);
-      if (!grupoMateria) {
-        return res.status(404).json({
-          success: false,
-          message: 'Grupo de materia no encontrado'
-        });
-      }
-
-      // Verificar que el aula existe
-      const aula = await Aula.findByPk(aulaId);
-      if (!aula) {
-        return res.status(404).json({
-          success: false,
-          message: 'Aula no encontrada'
-        });
-      }
-
-      // Verificar que no haya conflicto de horarios en la misma aula
+      // Verificar que no haya conflicto de horarios en el mismo día y horas
       const conflicto = await Horario.findOne({
         where: {
-          aulaId,
+          dia,
           [require('sequelize').Op.or]: [
             {
-              fechaIni: {
-                [require('sequelize').Op.between]: [fechaIni, fechaFinal]
+              horaInicio: {
+                [require('sequelize').Op.between]: [horaInicio, horaFin]
               }
             },
             {
-              fechaFinal: {
-                [require('sequelize').Op.between]: [fechaIni, fechaFinal]
+              horaFin: {
+                [require('sequelize').Op.between]: [horaInicio, horaFin]
               }
             },
             {
               [require('sequelize').Op.and]: [
-                { fechaIni: { [require('sequelize').Op.lte]: fechaIni } },
-                { fechaFinal: { [require('sequelize').Op.gte]: fechaFinal } }
+                { horaInicio: { [require('sequelize').Op.lte]: horaInicio } },
+                { horaFin: { [require('sequelize').Op.gte]: horaFin } }
               ]
             }
           ]
@@ -155,37 +101,20 @@ const horarioController = {
       if (conflicto) {
         return res.status(400).json({
           success: false,
-          message: 'El aula ya está ocupada en ese horario'
+          message: 'Ya existe un horario que se superpone en ese día y horario'
         });
       }
       
       const horario = await Horario.create({
-        fechaIni,
-        fechaFinal,
-        grupoMateriaId,
-        aulaId
-      });
-
-      // Obtener el horario con las relaciones incluidas
-      const horarioCompleto = await Horario.findByPk(horario.id, {
-        include: [
-          {
-            model: GrupoMateria,
-            as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
-          },
-          {
-            model: Aula,
-            as: 'aula',
-            attributes: ['id', 'codigo', 'capacidad']
-          }
-        ]
+        dia,
+        horaInicio,
+        horaFin     
       });
 
       res.status(201).json({
         success: true,
         message: 'Horario creado exitosamente',
-        data: horarioCompleto
+        data: horario
       });
     } catch (error) {
       res.status(500).json({
@@ -209,7 +138,7 @@ const horarioController = {
       }
 
       const { id } = req.params;
-      const { fechaIni, fechaFinal, grupoMateriaId, aulaId } = req.body;
+      const { dia, horaInicio, horaFin } = req.body;
 
       const horario = await Horario.findByPk(id);
       if (!horario) {
@@ -219,93 +148,49 @@ const horarioController = {
         });
       }
 
-      // Verificar que el grupo de materia existe si se está actualizando
-      if (grupoMateriaId) {
-        const grupoMateria = await GrupoMateria.findByPk(grupoMateriaId);
-        if (!grupoMateria) {
-          return res.status(404).json({
-            success: false,
-            message: 'Grupo de materia no encontrado'
-          });
-        }
-      }
-
-      // Verificar que el aula existe si se está actualizando
-      if (aulaId) {
-        const aula = await Aula.findByPk(aulaId);
-        if (!aula) {
-          return res.status(404).json({
-            success: false,
-            message: 'Aula no encontrada'
-          });
-        }
-
-        // Verificar conflictos de horario si se actualiza aula o fechas
-        if (aulaId !== horario.aulaId || fechaIni || fechaFinal) {
-          const nuevaFechaIni = fechaIni || horario.fechaIni;
-          const nuevaFechaFinal = fechaFinal || horario.fechaFinal;
-
-          const conflicto = await Horario.findOne({
-            where: {
-              id: { [require('sequelize').Op.ne]: id },
-              aulaId: aulaId || horario.aulaId,
-              [require('sequelize').Op.or]: [
-                {
-                  fechaIni: {
-                    [require('sequelize').Op.between]: [nuevaFechaIni, nuevaFechaFinal]
-                  }
-                },
-                {
-                  fechaFinal: {
-                    [require('sequelize').Op.between]: [nuevaFechaIni, nuevaFechaFinal]
-                  }
-                },
-                {
-                  [require('sequelize').Op.and]: [
-                    { fechaIni: { [require('sequelize').Op.lte]: nuevaFechaIni } },
-                    { fechaFinal: { [require('sequelize').Op.gte]: nuevaFechaFinal } }
-                  ]
-                }
+      // Verificar conflicto excluyendo el horario actual
+      const conflicto = await Horario.findOne({
+        where: {
+          id: { [require('sequelize').Op.ne]: id },
+          dia,
+          [require('sequelize').Op.or]: [
+            {
+              horaInicio: {
+                [require('sequelize').Op.between]: [horaInicio, horaFin]
+              }
+            },
+            {
+              horaFin: {
+                [require('sequelize').Op.between]: [horaInicio, horaFin]
+              }
+            },
+            {
+              [require('sequelize').Op.and]: [
+                { horaInicio: { [require('sequelize').Op.lte]: horaInicio } },
+                { horaFin: { [require('sequelize').Op.gte]: horaFin } }
               ]
             }
-          });
-
-          if (conflicto) {
-            return res.status(400).json({
-              success: false,
-              message: 'El aula ya está ocupada en ese horario'
-            });
-          }
+          ]
         }
+      });
+
+      if (conflicto) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya existe un horario que se superpone en ese día y horario'
+        });
       }
 
       await horario.update({
-        fechaIni,
-        fechaFinal,
-        grupoMateriaId,
-        aulaId
-      });
-
-      // Obtener el horario actualizado con las relaciones incluidas
-      const horarioActualizado = await Horario.findByPk(id, {
-        include: [
-          {
-            model: GrupoMateria,
-            as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
-          },
-          {
-            model: Aula,
-            as: 'aula',
-            attributes: ['id', 'codigo', 'capacidad']
-          }
-        ]
+        dia,
+        horaInicio,
+        horaFin
       });
 
       res.status(200).json({
         success: true,
         message: 'Horario actualizado exitosamente',
-        data: horarioActualizado
+        data: horario
       });
     } catch (error) {
       res.status(500).json({
@@ -344,77 +229,6 @@ const horarioController = {
     }
   },
 
-  // Obtener horarios por grupo de materia
-  getByGrupoMateria: async (req, res) => {
-    try {
-      const { grupoMateriaId } = req.params;
-      
-      const grupoMateria = await GrupoMateria.findByPk(grupoMateriaId);
-      if (!grupoMateria) {
-        return res.status(404).json({
-          success: false,
-          message: 'Grupo de materia no encontrado'
-        });
-      }
-
-      const horarios = await Horario.findAll({
-        where: { grupoMateriaId },
-        include: [{
-          model: Aula,
-          as: 'aula',
-          attributes: ['id', 'codigo', 'capacidad']
-        }],
-        order: [['fechaIni', 'ASC']]
-      });
-
-      res.status(200).json({
-        success: true,
-        data: horarios
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Error al obtener horarios del grupo',
-        error: error.message
-      });
-    }
-  },
-
-  // Obtener horarios por aula
-  getByAula: async (req, res) => {
-    try {
-      const { aulaId } = req.params;
-      
-      const aula = await Aula.findByPk(aulaId);
-      if (!aula) {
-        return res.status(404).json({
-          success: false,
-          message: 'Aula no encontrada'
-        });
-      }
-
-      const horarios = await Horario.findAll({
-        where: { aulaId },
-        include: [{
-          model: GrupoMateria,
-          as: 'grupoMateria',
-          attributes: ['id', 'numero', 'estado']
-        }],
-        order: [['fechaIni', 'ASC']]
-      });
-
-      res.status(200).json({
-        success: true,
-        data: horarios
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Error al obtener horarios del aula',
-        error: error.message
-      });
-    }
-  }
 };
 
 module.exports = horarioController;

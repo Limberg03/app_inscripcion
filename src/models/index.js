@@ -80,6 +80,16 @@ GrupoMateria.belongsTo(Docente, {
   as: 'docente' 
 });
 
+// Horario -> GrupoMateria (1:N)
+Horario.hasMany(GrupoMateria, { 
+  foreignKey: 'horarioId', 
+  as: 'grupos' 
+});
+GrupoMateria.belongsTo(Horario, { 
+  foreignKey: 'horarioId', 
+  as: 'horario' 
+});
+
 
 
 // GrupoMateria -> Inscripcion (1:N)

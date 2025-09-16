@@ -10,8 +10,8 @@ const planEstudioController = {
       const offset = (page - 1) * limit;
 
       const planesEstudio = await PlanEstudio.findAndCountAll({
-        limit,
-        offset,
+        // limit,
+        // offset,
         include: [{
           model: Carrera,
           as: 'carreras',

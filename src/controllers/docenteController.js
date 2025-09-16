@@ -10,12 +10,11 @@ const docenteController = {
       const offset = (page - 1) * limit;
 
       const docentes = await Docente.findAndCountAll({
-        limit,
-        offset,
+       
         include: [{
           model: GrupoMateria,
           as: 'grupos', // Cambiado de 'gruposMateria' a 'grupos'
-          attributes: ['id', 'numero', 'estado'],
+          attributes: ['id', 'grupo', 'estado'],
           include: [{
             model: Materia,
             as: 'materia',
@@ -52,7 +51,7 @@ const docenteController = {
         include: [{
           model: GrupoMateria,
           as: 'grupos', // Cambiado de 'gruposMateria' a 'grupos'
-          attributes: ['id', 'numero', 'estado'],
+          attributes: ['id', 'grupo', 'estado'],
           include: [{
             model: Materia,
             as: 'materia',

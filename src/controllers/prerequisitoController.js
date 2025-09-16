@@ -17,8 +17,8 @@ const prerequisitoController = {
 
       const prerequisitos = await Prerequisito.findAndCountAll({
         where,
-        limit,
-        offset,
+        // limit,
+        // offset,
         include: [{
           model: Materia,
           as: 'materia',
