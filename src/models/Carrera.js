@@ -10,6 +10,7 @@ const Carrera = sequelize.define('Carrera', {
   nombre: {
     type: DataTypes.STRING(100),
     allowNull: false,
+      unique: true, 
     validate: {
       notEmpty: true,
       len: [1, 100]

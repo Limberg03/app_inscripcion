@@ -14,7 +14,7 @@ module.exports = {
         updated_at: new Date()
       },
       {
-        dia:'Lun-mie-vie',
+        dia:'ma-jue',
         hora_inicio: '08:00:00',
         hora_fin: '10:00:00',
         created_at: new Date(),
@@ -38,40 +38,40 @@ module.exports = {
       },
       {
         dia: 'ma-jue',
-        hora_inicio: '14:00:00',
-        hora_fin: '16:00:00',
+        hora_inicio: '16:00:00',
+        hora_fin: '18:00:00',
         created_at: new Date(),
         updated_at: new Date()
       },
       // Programación I - Grupo B
       {
         dia: 'ma-jue',
-        hora_inicio: '16:00:00',
-        hora_fin: '18:00:00',
+        hora_inicio: '18:00:00',
+        hora_fin: '20:00:00',
         created_at: new Date(),
         updated_at: new Date()
       },
       // Física I - Grupo A
       {
         dia: 'ma-jue',
-        hora_inicio: '08:00:00',
-        hora_fin: '10:00:00',
+        hora_inicio: '07:00:00',
+        hora_fin: '08:00:00',
         created_at: new Date(),
         updated_at: new Date()
       },
       // POO - Grupo A
       {
         dia: 'ma-jue',
-        hora_inicio: '14:00:00',
-        hora_fin: '16:00:00',
+        hora_inicio: '20:00:00',
+        hora_fin: '22:00:00',
         created_at: new Date(),
         updated_at: new Date()
       },
       // Estructura de Datos - Grupo A
       {
-        dia: 'ma-jue',
+        dia: 'sab',
         hora_inicio: '08:00:00',
-        hora_fin: '10:00:00',
+        hora_fin: '11:00:00',
         created_at: new Date(),
         updated_at: new Date()
       }
