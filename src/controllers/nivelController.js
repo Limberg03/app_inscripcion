@@ -9,8 +9,8 @@ const nivelController = {
       const offset = (page - 1) * limit;
 
       const niveles = await Nivel.findAndCountAll({
-        limit,
-        offset,
+        // limit,
+        // offset,
         include: [{
           model: Materia,
           as: 'materias',
@@ -69,34 +69,58 @@ const nivelController = {
     }
   },
 
-  create: async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Errores de validación',
-          errors: errors.array()
-        });
-      }
-
-      const { nombre } = req.body;
-      
-      const nivel = await Nivel.create({ nombre });
-
-      res.status(201).json({
-        success: true,
-        message: 'Nivel creado exitosamente',
-        data: nivel
-      });
-    } catch (error) {
-      res.status(500).json({
+create: async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Error al crear nivel',
-        error: error.message
+        message: 'Errores de validación',
+        errors: errors.array()
       });
     }
-  },
+
+    const { nombre, materias } = req.body;
+
+    // Crear el nivel
+    const nivel = await Nivel.create({ nombre });
+
+    // Crear materias si existen
+    if (materias && Array.isArray(materias)) {
+      for (const materia of materias) {
+        await Materia.create({
+          nombre: materia.nombre,
+          sigla: materia.sigla,
+          creditos: materia.creditos,
+          nivelId: nivel.id,              // 👈 usa el nombre real de la FK
+          planEstudioId: materia.planEstudioId // 👈 obligatorio en tu modelo
+        });
+      }
+    }
+
+    // Traer nivel con materias
+    const nivelConMaterias = await Nivel.findByPk(nivel.id, {
+      include: [{
+        model: Materia,
+        as: 'materias',
+        attributes: ['id', 'nombre', 'sigla', 'creditos', 'planEstudioId']
+      }]
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Nivel creado exitosamente',
+      data: nivelConMaterias
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear nivel',
+      error: error.message
+    });
+  }
+},
+
 
   update: async (req, res) => {
     try {

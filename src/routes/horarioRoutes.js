@@ -17,10 +17,5 @@ router.put('/:id',  horarioController.update);
 // Eliminar horario
 router.delete('/:id', horarioController.delete);
 
-// Obtener horarios por grupo de materia
-router.get('/grupo-materia/:grupoMateriaId',  horarioController.getByGrupoMateria);
-
-// Obtener horarios por aula
-router.get('/aula/:aulaId',  horarioController.getByAula);
 
 module.exports = router;

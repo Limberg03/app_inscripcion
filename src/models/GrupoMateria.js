@@ -7,7 +7,7 @@ const GrupoMateria = sequelize.define('GrupoMateria', {
     primaryKey: true,
     autoIncrement: true
   },
-  numero: {
+  grupo: {
     type: DataTypes.STRING(10),
     allowNull: false,
     validate: {
@@ -37,7 +37,17 @@ const GrupoMateria = sequelize.define('GrupoMateria', {
       model: 'docentes',
       key: 'id'
     }
-  }
+  },
+   horarioId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'horario_id',
+    references: {
+      model: 'horarios',
+      key: 'id'
+    }
+  },    
+  
 }, {
   tableName: 'grupos_materia',
   timestamps: true,

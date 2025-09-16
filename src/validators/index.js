@@ -6,7 +6,7 @@ const validators = {
   // Validadores para Estudiante
   estudiante: {
     create: [
-      body('numero')
+      body('nombre')
         .notEmpty()
         .withMessage('El número de estudiante es requerido')
         .isLength({ max: 20 })
@@ -14,7 +14,7 @@ const validators = {
         .custom(async (value) => {
           // Validación asíncrona - verificar unicidad
           const existingStudent = await Estudiante.findOne({
-            where: { numero: value }
+            where: { nombre: value }
           });
           if (existingStudent) {
             throw new Error('El número de estudiante ya está registrado');
@@ -88,16 +88,16 @@ const validators = {
           return true;
         }),
       
-      body('numero')
+      body('nombre')
         .notEmpty()
-        .withMessage('El número de estudiante es requerido')
+        .withMessage('El nombre de estudiante es requerido')
         .isLength({ max: 20 })
         .withMessage('El número no puede exceder 20 caracteres')
         .custom(async (value, { req }) => {
           // Validación asíncrona - verificar unicidad excluyendo el registro actual
           const existingStudent = await Estudiante.findOne({
             where: { 
-              numero: value,
+              nombre: value,
               id: { [Op.ne]: req.params.id }
             }
           });
@@ -334,17 +334,17 @@ const validators = {
         .withMessage('El ID del plan de estudio es requerido')
         .isInt({ min: 1 })
         .withMessage('El ID del plan de estudio debe ser un número entero positivo')
-        .custom(async (value) => {
-          // Verificar que el plan de estudio existe
-          const planEstudio = await PlanEstudio.findByPk(value);
-          if (!planEstudio) {
-            throw new Error('El plan de estudio no existe');
-          }
-          if (!planEstudio.estado) {
-            throw new Error('El plan de estudio debe estar activo');
-          }
-          return true;
-        })
+        // .custom(async (value) => {
+        //   // Verificar que el plan de estudio existe
+        //   const planEstudio = await PlanEstudio.findByPk(value);
+        //   if (!planEstudio) {
+        //     throw new Error('El plan de estudio no existe');
+        //   }
+        //   if (!planEstudio.estado) {
+        //     throw new Error('El plan de estudio debe estar activo');
+        //   }
+        //   return true;
+        // })
     ],
 
     update: [

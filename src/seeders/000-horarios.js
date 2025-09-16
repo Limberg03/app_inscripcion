@@ -7,14 +7,14 @@ module.exports = {
     await queryInterface.bulkInsert('horarios', [
       // Matemáticas I - Grupo A
       {
-        fecha: new Date('2024-03-01'),
+        dia: 'Lun-mie-vie',
         hora_inicio: '08:00:00',
         hora_fin: '10:00:00',
         created_at: new Date(),
         updated_at: new Date()
       },
       {
-        fecha: new Date('2024-03-03'),
+        dia:'Lun-mie-vie',
         hora_inicio: '08:00:00',
         hora_fin: '10:00:00',
         created_at: new Date(),
@@ -22,7 +22,7 @@ module.exports = {
       },
       // Matemáticas I - Grupo B
       {
-        fecha: new Date('2024-03-01'),
+        dia: 'Lun-mie-vie',
         hora_inicio: '10:00:00',
         hora_fin: '12:00:00',
         created_at: new Date(),
@@ -30,14 +30,14 @@ module.exports = {
       },
       // Programación I - Grupo A
       {
-        fecha: new Date('2024-03-02'),
+        dia: 'ma-jue',
         hora_inicio: '14:00:00',
         hora_fin: '16:00:00',
         created_at: new Date(),
         updated_at: new Date()
       },
       {
-        fecha: new Date('2024-03-04'),
+        dia: 'ma-jue',
         hora_inicio: '14:00:00',
         hora_fin: '16:00:00',
         created_at: new Date(),
@@ -45,7 +45,7 @@ module.exports = {
       },
       // Programación I - Grupo B
       {
-        fecha: new Date('2024-03-02'),
+        dia: 'ma-jue',
         hora_inicio: '16:00:00',
         hora_fin: '18:00:00',
         created_at: new Date(),
@@ -53,7 +53,7 @@ module.exports = {
       },
       // Física I - Grupo A
       {
-        fecha: new Date('2024-03-05'),
+        dia: 'ma-jue',
         hora_inicio: '08:00:00',
         hora_fin: '10:00:00',
         created_at: new Date(),
@@ -61,7 +61,7 @@ module.exports = {
       },
       // POO - Grupo A
       {
-        fecha: new Date('2024-03-01'),
+        dia: 'ma-jue',
         hora_inicio: '14:00:00',
         hora_fin: '16:00:00',
         created_at: new Date(),
@@ -69,7 +69,7 @@ module.exports = {
       },
       // Estructura de Datos - Grupo A
       {
-        fecha: new Date('2024-03-02'),
+        dia: 'ma-jue',
         hora_inicio: '08:00:00',
         hora_fin: '10:00:00',
         created_at: new Date(),

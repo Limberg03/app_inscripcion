@@ -3,351 +3,683 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Básico - Sistema de Colas</title>
+    <title>Dashboard de Colas Redis</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background: #f5f5f5;
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #2c2c2c;
+            --header-bg: #222;
+            --border-color: #444;
+            --text-color: #f0f0f0;
+            --text-muted: #999;
+            --accent-color: #007bff;
+            --accent-hover: #0056b3;
+            --green: #28a745;
+            --yellow: #ffc107;
+            --red: #dc3545;
+            --blue: #17a2b8;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
+        }
+
         .container {
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
         }
-        .card {
-            background: white;
-            padding: 20px;
-            margin: 10px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .button {
-            background: #007bff;
-            color: white;
-            border: none;
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             padding: 10px 20px;
+            background-color: var(--header-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+        .status-light.connected { background-color: var(--green); }
+        .status-light.disconnected { background-color: var(--red); }
+        
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .toggle-switch input { display: none; }
+        .toggle-switch label {
+            cursor: pointer;
+            background-color: #555;
+            width: 40px;
+            height: 20px;
+            border-radius: 10px;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+        .toggle-switch label::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: white;
+            transition: transform 0.2s;
+        }
+        .toggle-switch input:checked + label { background-color: var(--accent-color); }
+        .toggle-switch input:checked + label::after { transform: translateX(20px); }
+
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .panel h2 {
+            margin: 0 0 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        
+        #queues-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        #queues-list li {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #queues-list li:hover, #queues-list li.active {
+            background-color: #3a3a3a;
+        }
+        #queues-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .queue-stats-summary {
+            font-size: 0.8em;
+            color: var(--text-muted);
+        }
+        .queue-stats-summary span {
+            margin-left: 5px;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+        }
+        .form-group input {
+            flex-grow: 1;
+        }
+        
+        input[type="text"], input[type="number"] {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .btn {
+            padding: 8px 12px;
+            border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin: 5px;
+            font-weight: bold;
+            transition: opacity 0.2s;
         }
-        .button:hover {
-            background: #0056b3;
+        .btn:hover {
+            opacity: 0.8;
         }
-        .button.success { background: #28a745; }
-        .button.warning { background: #ffc107; color: black; }
-        .button.danger { background: #dc3545; }
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-danger { background-color: var(--red); color: white; }
+        .btn-sm { padding: 4px 8px; font-size: 0.8em; }
+        .btn-icon { background: none; color: var(--text-muted); padding: 4px; }
+        .btn-icon:hover { color: var(--text-color); }
         
-        .form-group {
-            margin: 10px 0;
+        #details-panel {
+            min-height: 60vh;
         }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+        
+        #placeholder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: var(--text-muted);
+            font-size: 1.2em;
         }
-        .form-group input, .form-group select {
+        
+        .section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        table {
             width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            max-width: 300px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
         }
-        .log {
-            background: #1a1a1a;
-            color: #00ff00;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: monospace;
-            height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
+        thead {
+            background-color: #333;
         }
-        .status {
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
+        
+        .status-tag {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            color: white;
+            display: inline-block;
         }
-        .status.success { background: #d4edda; color: #155724; }
-        .status.error { background: #f8d7da; color: #721c24; }
-        .status.warning { background: #fff3cd; color: #856404; }
+        .status-tag.running, .status-tag.completed { background-color: var(--green); }
+        .status-tag.paused { background-color: var(--yellow); color: #333; }
+        .status-tag.stopped, .status-tag.failed, .status-tag.error { background-color: var(--red); }
+        .status-tag.pending { background-color: var(--blue); }
+        .status-tag.processing { background-color: var(--accent-color); }
+
+        .task-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .task-filters .btn {
+            background-color: #444;
+            color: var(--text-color);
+        }
+        .task-filters .btn.active {
+            background-color: var(--accent-color);
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--accent-color);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
+
     <div class="container">
-        <h1>Sistema de Colas - Dashboard Básico</h1>
-        
-        <!-- Health Check -->
-        <div class="card">
-            <h2>Estado del Sistema</h2>
-            <button class="button" onclick="checkHealth()">Verificar Estado</button>
-            <div id="healthStatus"></div>
-        </div>
+        <header>
+            <h1>Dashboard de Colas</h1>
+            <div class="status-indicator">
+                <div class="loader" id="loader"></div>
+                 <div class="toggle-switch">
+                    <span>Auto-refresh</span>
+                    <input type="checkbox" id="auto-refresh-toggle" checked>
+                    <label for="auto-refresh-toggle"></label>
+                </div>
+                <span>API Status:</span>
+                <div id="api-status-light" class="status-light disconnected"></div>
+                <span id="api-status-text">Disconnected</span>
+            </div>
+        </header>
 
-        <!-- Test de Conexión -->
-        <div class="card">
-            <h2>Test de Conexión</h2>
-            <p>Prueba diferentes endpoints para ver cuáles funcionan:</p>
-            <button class="button" onclick="testEndpoint('/api/v1/queue/health')">Test Health</button>
-            <button class="button" onclick="testEndpoint('/api/v1/queue/queues/stats/all')">Test Stats</button>
-            <button class="button" onclick="testEndpoint('/api/v1/queue/queues')">Test Queues</button>
-            <button class="button" onclick="testEndpoint('/queue/health')">Test Queue Health</button>
-        </div>
+        <main class="dashboard-grid">
+            <div class="panel" id="queues-panel">
+                <section class="section">
+                    <h2>Colas</h2>
+                    <ul id="queues-list">
+                        </ul>
+                </section>
+                <section class="section">
+                    <h3>Crear Nueva Cola</h3>
+                    <form id="create-queue-form" class="form-group">
+                        <input type="text" id="new-queue-name" placeholder="Nombre de la cola" required>
+                        <button type="submit" class="btn btn-primary">Crear</button>
+                    </form>
+                </section>
+            </div>
 
-        <!-- Crear Cola -->
-        <div class="card">
-            <h2>Crear Cola</h2>
-            <div class="form-group">
-                <label>Nombre de la Cola:</label>
-                <input type="text" id="queueName" placeholder="test_queue" value="test_queue">
-            </div>
-            <button class="button success" onclick="createQueue()">Crear Cola</button>
-        </div>
+            <div class="panel" id="details-panel">
+                <div id="placeholder">Selecciona una cola para ver los detalles.</div>
+                <div id="queue-details" style="display: none;">
+                    
+                    <section class="section" id="workers-section">
+                        <div style="display:flex; justify-content: space-between; align-items:center;">
+                             <h2 id="details-title">Workers</h2>
+                             <button class="btn btn-danger btn-sm" id="delete-queue-btn">Eliminar Cola</button>
+                        </div>
+                        <table id="workers-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Estado</th>
+                                    <th>Hilos</th>
+                                    <!-- <th>Procesando</th> -->
+                                    <th>Completados</th>
+                                    <th>Fallidos</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="workers-table-body"></tbody>
+                        </table>
+                        <form id="create-worker-form" class="form-group">
+                            <input type="number" id="new-worker-threads" value="1" min="1" max="10">
+                            <button type="submit" class="btn btn-primary">Crear Worker</button>
+                        </form>
+                    </section>
 
-        <!-- Crear Worker -->
-        <div class="card">
-            <h2>Crear Worker</h2>
-            <div class="form-group">
-                <label>Cola:</label>
-                <input type="text" id="workerQueue" placeholder="test_queue" value="test_queue">
-            </div>
-            <div class="form-group">
-                <label>Threads:</label>
-                <input type="number" id="threadCount" value="2" min="1" max="10">
-            </div>
-            <button class="button success" onclick="createWorker()">Crear Worker</button>
-        </div>
+                    <hr style="border-color: var(--border-color); margin: 20px 0;">
 
-        <!-- Agregar Datos de Prueba -->
-        <div class="card">
-            <h2>Agregar Datos de Prueba</h2>
-            <div class="form-group">
-                <label>Cola:</label>
-                <input type="text" id="testQueue" placeholder="test_queue" value="test_queue">
-            </div>
-            <div class="form-group">
-                <label>Modelo:</label>
-                <select id="testModel">
-                    <option value="Docente">Docente</option>
-                    <option value="Estudiante">Estudiante</option>
-                    <option value="Materia">Materia</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Datos JSON:</label>
-                <input type="text" id="testData" placeholder='{"nombre": "Test", "email": "test@test.com"}' value='{"nombre": "Test Docente", "email": "test@universidad.com"}'>
-            </div>
-            <button class="button" onclick="addTestData()">Agregar Datos</button>
-        </div>
+                    <section class="section" id="tasks-section">
+                        <h2>Tareas</h2>
+                         <div class="task-filters" id="task-filters">
+                            <button class="btn btn-sm active" data-status="pending">Pendientes</button>
+                            <!-- <button class="btn btn-sm" data-status="processing">Procesando</button> -->
+                            <button class="btn btn-sm" data-status="completed">Completadas</button>
+                            <button class="btn btn-sm" data-status="failed">Fallidas/Error</button>
+                         </div>
+                        <table id="tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Tarea</th>
+                                    <th>Estado</th>
+                                    <th>Modelo</th>
+                                    <th>Operación</th>
+                                    <th>Creado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasks-table-body"></tbody>
+                        </table>
+                         <div id="tasks-placeholder" style="text-align:center; padding: 20px; color: var(--text-muted);"></div>
+                    </section>
 
-        <!-- Logs -->
-        <div class="card">
-            <h2>Logs del Sistema</h2>
-            <button class="button warning" onclick="clearLogs()">Limpiar Logs</button>
-            <div class="log" id="logs">Sistema iniciado...\n</div>
-        </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        // Configuración dinámica - probará diferentes bases
-        const POSSIBLE_BASES = [
-            'http://localhost:3000/api/v1/queue',
-            'http://localhost:3000/queue',  
-            'http://localhost:3000/api/v1',
-            'http://localhost:3000'
-        ];
-        
-        let currentBase = POSSIBLE_BASES[0];
+        const API_BASE_URL = 'http://localhost:3000/queue';
 
-        function log(message, type = 'info') {
-            const logs = document.getElementById('logs');
-            const timestamp = new Date().toLocaleTimeString();
-            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
-            logs.textContent += `[${timestamp}] ${prefix} ${message}\n`;
-            logs.scrollTop = logs.scrollHeight;
-        }
+        const state = {
+            selectedQueue: null,
+            selectedTaskStatus: 'pending',
+            pollingInterval: null,
+            autoRefresh: true,
+        };
 
-        function clearLogs() {
-            document.getElementById('logs').textContent = 'Logs limpiados...\n';
-        }
+        // Elementos del DOM
+        const dom = {
+            loader: document.getElementById('loader'),
+            apiStatusLight: document.getElementById('api-status-light'),
+            apiStatusText: document.getElementById('api-status-text'),
+            autoRefreshToggle: document.getElementById('auto-refresh-toggle'),
+            queuesList: document.getElementById('queues-list'),
+            detailsPanel: document.getElementById('details-panel'),
+            placeholder: document.getElementById('placeholder'),
+            queueDetails: document.getElementById('queue-details'),
+            detailsTitle: document.getElementById('details-title'),
+            deleteQueueBtn: document.getElementById('delete-queue-btn'),
+            workersTableBody: document.getElementById('workers-table-body'),
+            tasksTableBody: document.getElementById('tasks-table-body'),
+            taskFilters: document.getElementById('task-filters'),
+            tasksPlaceholder: document.getElementById('tasks-placeholder'),
+            createQueueForm: document.getElementById('create-queue-form'),
+            newQueueNameInput: document.getElementById('new-queue-name'),
+            createWorkerForm: document.getElementById('create-worker-form'),
+            newWorkerThreadsInput: document.getElementById('new-worker-threads'),
+        };
+
+        // --- FUNCIONES DE API ---
 
         async function apiCall(endpoint, options = {}) {
-            const url = currentBase + endpoint;
-            log(`Llamando: ${url}`);
-            
+            dom.loader.style.display = 'block';
             try {
-                const response = await fetch(url, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    },
-                    ...options
-                });
-                
-                const text = await response.text();
-                let data;
-                
-                try {
-                    data = JSON.parse(text);
-                } catch {
-                    data = { raw: text };
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Error ${response.status}`);
                 }
-                
-                if (response.ok) {
-                    log(`✅ ${response.status}: ${JSON.stringify(data)}`, 'success');
-                    return { success: true, data };
-                } else {
-                    log(`❌ ${response.status}: ${text}`, 'error');
-                    return { success: false, error: text, status: response.status };
-                }
+                return response.json();
             } catch (error) {
-                log(`❌ Error de conexión: ${error.message}`, 'error');
-                return { success: false, error: error.message };
+                console.error(`API Call Error (${endpoint}):`, error);
+                updateApiStatus(false, error.message);
+                throw error;
+            } finally {
+                dom.loader.style.display = 'none';
             }
         }
 
-        async function testEndpoint(endpoint) {
-            log(`Probando endpoint: ${endpoint}`);
-            
-            // Probar con diferentes bases
-            for (const base of POSSIBLE_BASES) {
-                const url = base + endpoint;
-                log(`Intentando: ${url}`);
-                
-                try {
-                    const response = await fetch(url);
-                    const text = await response.text();
-                    
-                    if (response.ok) {
-                        currentBase = base; // Actualizar base exitosa
-                        log(`✅ FUNCIONA: ${url} - Status: ${response.status}`, 'success');
-                        log(`Respuesta: ${text.substring(0, 200)}...`);
-                        return;
-                    } else {
-                        log(`⚠️ ${url} - Status: ${response.status}`);
-                    }
-                } catch (error) {
-                    log(`❌ ${url} - Error: ${error.message}`);
-                }
-            }
-            
-            log(`❌ Ningún endpoint funcionó para: ${endpoint}`, 'error');
-        }
-
-        async function checkHealth() {
-            const healthDiv = document.getElementById('healthStatus');
-            healthDiv.innerHTML = '<p>Verificando...</p>';
-            
-            const result = await apiCall('/health');
-            
-            if (result.success) {
-                healthDiv.innerHTML = `<div class="status success">Sistema OK</div><pre>${JSON.stringify(result.data, null, 2)}</pre>`;
+        // --- FUNCIONES DE RENDERIZADO ---
+        
+        function updateApiStatus(connected, message = '') {
+            if (connected) {
+                dom.apiStatusLight.className = 'status-light connected';
+                dom.apiStatusText.textContent = 'Connected';
             } else {
-                healthDiv.innerHTML = `<div class="status error">Error: ${result.error}</div>`;
+                dom.apiStatusLight.className = 'status-light disconnected';
+                dom.apiStatusText.textContent = 'Disconnected';
             }
         }
 
-        async function createQueue() {
-            const queueName = document.getElementById('queueName').value.trim();
-            if (!queueName) {
-                log('❌ Ingrese un nombre para la cola', 'error');
+        function renderQueues(queues) {
+            dom.queuesList.innerHTML = '';
+            if (Object.keys(queues).length === 0) {
+                dom.queuesList.innerHTML = '<li>No hay colas creadas.</li>';
                 return;
             }
-
-            const result = await apiCall(`/queues/${queueName}`, {
-                method: 'POST',
-                body: JSON.stringify({})
-            });
-
-            if (result.success) {
-                log(`✅ Cola '${queueName}' creada exitosamente`, 'success');
-            }
-        }
-
-        async function createWorker() {
-            const queueName = document.getElementById('workerQueue').value.trim();
-            const threadCount = parseInt(document.getElementById('threadCount').value);
             
-            if (!queueName) {
-                log('❌ Ingrese un nombre de cola', 'error');
-                return;
-            }
-
-            // Intentar diferentes endpoints de workers
-            const workerEndpoints = [
-                `/queues/${queueName}/workers`,
-                `/workers`,
-                `/${queueName}/workers`
-            ];
-
-            for (const endpoint of workerEndpoints) {
-                log(`Intentando crear worker en: ${endpoint}`);
-                
-                const result = await apiCall(endpoint, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        threadCount: threadCount,
-                        autoStart: false
-                    })
-                });
-
-                if (result.success) {
-                    log(`✅ Worker creado exitosamente`, 'success');
-                    return;
+            for (const queueName in queues) {
+                const stats = queues[queueName];
+                const li = document.createElement('li');
+                li.dataset.queueName = queueName;
+                if (state.selectedQueue === queueName) {
+                    li.classList.add('active');
                 }
+                
+                li.innerHTML = `
+                    <span>${queueName}</span>
+                    <span class="queue-stats-summary">
+                        <span>⏳ ${stats.pending || 0}</span>
+                        <span>⚙️ ${stats.processing || 0}</span>
+                        <span>✅ ${stats.completed || 0}</span>
+                        <span>❌ ${stats.failed || 0}</span>
+                    </span>
+                `;
+                dom.queuesList.appendChild(li);
             }
-            
-            log('❌ No se pudo crear el worker con ningún endpoint', 'error');
         }
+        
+        function renderWorkers(workers) {
+             dom.workersTableBody.innerHTML = '';
+             const filteredWorkers = workers.filter(w => w.queueName === state.selectedQueue);
 
-        async function addTestData() {
-            const queueName = document.getElementById('testQueue').value.trim();
-            const model = document.getElementById('testModel').value;
-            const dataStr = document.getElementById('testData').value.trim();
-            
-            if (!queueName || !dataStr) {
-                log('❌ Complete todos los campos', 'error');
-                return;
-            }
+             if(filteredWorkers.length === 0) {
+                 dom.workersTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No hay workers para esta cola.</td></tr>';
+                 return;
+             }
 
-            let data;
+             filteredWorkers.forEach(worker => {
+                 const statusClass = worker.isPaused ? 'paused' : (worker.isRunning ? 'running' : 'stopped');
+                 const statusText = worker.isPaused ? 'Pausado' : (worker.isRunning ? 'Corriendo' : 'Detenido');
+
+                 const tr = document.createElement('tr');
+                 tr.innerHTML = `
+                    <td>${worker.id}</td>
+                    <td><span class="status-tag ${statusClass}">${statusText}</span></td>
+                    <td>${worker.threadCount}</td>
+                    <td>${worker.processingTasks}</td>
+                    <td>${worker.stats.totalCompleted}</td>
+                    <td>${worker.stats.totalFailed + worker.stats.totalErrors}</td>
+                    <td>
+                        <button class="btn btn-sm" data-action="start" data-worker-id="${worker.id}" ${worker.isRunning ? 'disabled' : ''}>▶️ Iniciar</button>
+                        <button class="btn btn-sm" data-action="pause" data-worker-id="${worker.id}" ${!worker.isRunning || worker.isPaused ? 'disabled' : ''}>⏸️ Pausar</button>
+                        <button class="btn btn-sm" data-action="resume" data-worker-id="${worker.id}" ${!worker.isPaused ? 'disabled' : ''}>⏯️ Reanudar</button>
+                        <button class="btn btn-sm btn-danger" data-action="stop" data-worker-id="${worker.id}">⏹️ Detener</button>
+                    </td>
+                 `;
+                 dom.workersTableBody.appendChild(tr);
+             });
+        }
+        
+        async function renderTasks(queueName, status) {
             try {
-                data = JSON.parse(dataStr);
-            } catch (error) {
-                log('❌ Datos JSON inválidos', 'error');
-                return;
-            }
+                dom.tasksPlaceholder.textContent = 'Cargando tareas...';
+                const data = await apiCall(`/${queueName}/tasks?status=${status}&limit=100`);
+                dom.tasksTableBody.innerHTML = '';
 
-            // Intentar diferentes endpoints para guardar datos
-            const saveEndpoints = [
-                `/queues/${queueName}/${model}/save`,
-                `/${queueName}/${model}/save`,
-                `/queues/${queueName}/tasks`,
-                `/save`
-            ];
-
-            for (const endpoint of saveEndpoints) {
-                log(`Intentando guardar en: ${endpoint}`);
-                
-                const result = await apiCall(endpoint, {
-                    method: 'POST',
-                    body: JSON.stringify({ data })
-                });
-
-                if (result.success) {
-                    log(`✅ Datos guardados exitosamente`, 'success');
-                    return;
+                if (data.tasks.length === 0) {
+                    dom.tasksPlaceholder.textContent = `No hay tareas en estado '${status}'.`;
+                    dom.tasksTableBody.style.display = 'none';
+                    dom.tasksPlaceholder.style.display = 'block';
+                } else {
+                    dom.tasksTableBody.style.display = '';
+                    dom.tasksPlaceholder.style.display = 'none';
+                    data.tasks.forEach(task => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${task.id}</td>
+                            <td><span class="status-tag ${task.status}">${task.status}</span></td>
+                            <td>${task.model}</td>
+                            <td>${task.operation}</td>
+                            <td>${new Date(task.createdAt).toLocaleString()}</td>
+                        `;
+                        dom.tasksTableBody.appendChild(tr);
+                    });
                 }
+            } catch (error) {
+                dom.tasksPlaceholder.textContent = `Error al cargar tareas: ${error.message}`;
             }
-            
-            log('❌ No se pudieron guardar los datos con ningún endpoint', 'error');
         }
 
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', function() {
-            log('Dashboard cargado. Probando conectividad...');
-            testEndpoint('/health');
-        });
+        function showQueueDetails(queueName) {
+            state.selectedQueue = queueName;
+            dom.placeholder.style.display = 'none';
+            dom.queueDetails.style.display = 'block';
+            dom.detailsTitle.textContent = `Workers de: ${queueName}`;
+            
+            // Actualizar clase activa en la lista
+            document.querySelectorAll('#queues-list li').forEach(li => {
+                li.classList.toggle('active', li.dataset.queueName === queueName);
+            });
+            
+            loadDashboardData(true); // Carga los datos sin refrescar todo, solo actualiza la vista
+        }
+
+        // --- LÓGICA PRINCIPAL ---
+        
+        async function loadDashboardData(isViewUpdate = false) {
+            if (!state.autoRefresh && !isViewUpdate) return;
+            
+            try {
+                const data = await apiCall('/dashboard');
+                updateApiStatus(true);
+                renderQueues(data.dashboard.queues);
+                
+                if (state.selectedQueue) {
+                    renderWorkers(data.dashboard.workers);
+                    renderTasks(state.selectedQueue, state.selectedTaskStatus);
+                } else {
+                    dom.placeholder.style.display = 'flex';
+                    dom.queueDetails.style.display = 'none';
+                }
+
+            } catch (error) {
+                // El estado de la API ya se actualiza en apiCall
+            }
+        }
+
+        function startPolling() {
+            if (state.pollingInterval) clearInterval(state.pollingInterval);
+            state.pollingInterval = setInterval(loadDashboardData, 5000);
+        }
+
+        function stopPolling() {
+            clearInterval(state.pollingInterval);
+            state.pollingInterval = null;
+        }
+
+        // --- MANEJADORES DE EVENTOS ---
+        
+        function handleQueueClick(e) {
+            const queueLi = e.target.closest('li');
+            if (queueLi && queueLi.dataset.queueName) {
+                showQueueDetails(queueLi.dataset.queueName);
+            }
+        }
+        
+        async function handleCreateQueue(e) {
+            e.preventDefault();
+            const queueName = dom.newQueueNameInput.value.trim();
+            if (!queueName) return;
+            
+            try {
+                await apiCall(`/${queueName}`, { method: 'POST' });
+                dom.newQueueNameInput.value = '';
+                loadDashboardData(true);
+            } catch (error) {
+                alert(`Error al crear la cola: ${error.message}`);
+            }
+        }
+
+        async function handleDeleteQueue() {
+            if (!state.selectedQueue) return;
+            if (confirm(`¿Estás seguro de que quieres eliminar la cola "${state.selectedQueue}" y todos sus workers y tareas?`)) {
+                try {
+                    await apiCall(`/${state.selectedQueue}`, { method: 'DELETE' });
+                    state.selectedQueue = null;
+                    loadDashboardData(true);
+                } catch (error) {
+                    alert(`Error al eliminar la cola: ${error.message}`);
+                }
+            }
+        }
+        
+        async function handleCreateWorker(e) {
+            e.preventDefault();
+            if (!state.selectedQueue) return;
+            
+            const threadCount = parseInt(dom.newWorkerThreadsInput.value);
+            try {
+                await apiCall(`/${state.selectedQueue}/workers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ threadCount, autoStart: true })
+                });
+                loadDashboardData(true);
+            } catch (error) {
+                alert(`Error al crear el worker: ${error.message}`);
+            }
+        }
+        
+        async function handleWorkerAction(e) {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+            
+            const action = button.dataset.action;
+            const workerId = button.dataset.workerId;
+            
+            try {
+                switch(action) {
+                    case 'start':
+                        await apiCall(`/workers/${workerId}/start`, { method: 'POST' });
+                        break;
+                    case 'pause':
+                        await apiCall(`/workers/${workerId}/pause`, { method: 'POST' });
+                        break;
+                    case 'resume':
+                        await apiCall(`/workers/${workerId}/resume`, { method: 'POST' });
+                        break;
+                    case 'stop':
+                         if (confirm(`¿Estás seguro de que quieres detener (eliminar) el worker ${workerId}?`)) {
+                           await apiCall(`/workers/${workerId}`, { method: 'DELETE' });
+                         }
+                        break;
+                }
+                loadDashboardData(true);
+            } catch (error) {
+                alert(`Error en la acción '${action}': ${error.message}`);
+            }
+        }
+        
+        function handleTaskFilterClick(e) {
+            const button = e.target.closest('button[data-status]');
+            if (!button) return;
+
+            dom.taskFilters.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            state.selectedTaskStatus = button.dataset.status;
+            if (state.selectedQueue) {
+                renderTasks(state.selectedQueue, state.selectedTaskStatus);
+            }
+        }
+        
+        function handleAutoRefreshToggle() {
+            state.autoRefresh = dom.autoRefreshToggle.checked;
+            if (state.autoRefresh) {
+                startPolling();
+                loadDashboardData(true);
+            } else {
+                stopPolling();
+            }
+        }
+
+        // --- INICIALIZACIÓN ---
+        
+        function initializeApp() {
+            dom.queuesList.addEventListener('click', handleQueueClick);
+            dom.createQueueForm.addEventListener('submit', handleCreateQueue);
+            dom.deleteQueueBtn.addEventListener('click', handleDeleteQueue);
+            dom.createWorkerForm.addEventListener('submit', handleCreateWorker);
+            dom.workersTableBody.addEventListener('click', handleWorkerAction);
+            dom.taskFilters.addEventListener('click', handleTaskFilterClick);
+            dom.autoRefreshToggle.addEventListener('change', handleAutoRefreshToggle);
+
+            loadDashboardData();
+            startPolling();
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
     </script>
 </body>
 </html>

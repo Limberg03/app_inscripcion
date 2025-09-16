@@ -1,4 +1,8 @@
-const { Nota, GrupoMateria, Inscripcion, Estudiante } = require('../models');
+const { Nota, GrupoMateria, Estudiante,Materia,
+  Docente,  
+  PlanEstudio,
+  Nivel,
+  Prerequisito } = require('../models');
 const { validationResult } = require('express-validator');
 
 const notaController = {
@@ -8,38 +12,63 @@ const notaController = {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const offset = (page - 1) * limit;
-      const { grupoMateriaId, inscripcionId, notaMinima } = req.query;
+      const { grupoMateriaId, notaMinima } = req.query;
 
       const where = {};
       if (grupoMateriaId) {
         where.grupoMateriaId = grupoMateriaId;
       }
-      if (inscripcionId) {
-        where.inscripcionId = inscripcionId;
-      }
+      
       if (notaMinima) {
         where.notaFinal = { [require('sequelize').Op.gte]: parseFloat(notaMinima) };
       }
 
       const notas = await Nota.findAndCountAll({
         where,
-        limit,
-        offset,
+        // limit,
+        // offset,
+         attributes: { exclude: ["grupoMateriaId", "estudianteId"] },
         include: [
           {
-            model: GrupoMateria,
+             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
+            attributes: ['id', 'grupo', 'estado'],
+            include: [
+              {
+                model: Materia,
+                as: 'materia',
+                attributes: ['id', 'nombre', 'sigla', 'creditos'],
+                include: [
+                  {
+                    model: PlanEstudio,
+                    as: 'planEstudio',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Nivel,
+                    as: 'nivel',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Prerequisito,
+                    as: 'prerequisitos',
+                    attributes: ['id', 'materia_id', 'requiere_id']
+                  }
+                ]
+              },
+              {
+                model: Docente,
+                as: 'docente',
+                attributes: ['id', 'nombre', 'telefono']
+              }
+            ]
           },
           {
-            model: Inscripcion,
-            as: 'inscripcion',
-            attributes: ['id', 'fecha', 'gestion'],
-            include: [{
+            
+           
               model: Estudiante,
               as: 'estudiante',
-              attributes: ['id', 'numero', 'registro']
-            }]
+              attributes: ['id', 'nombre', 'registro']          
           }
         ],
         order: [['id', 'ASC']]
@@ -73,17 +102,14 @@ const notaController = {
           {
             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
+            attributes: ['id', 'grupo', 'estado']
           },
           {
-            model: Inscripcion,
-            as: 'inscripcion',
-            attributes: ['id', 'fecha', 'gestion'],
-            include: [{
+            
+           
               model: Estudiante,
               as: 'estudiante',
-              attributes: ['id', 'numero', 'registro', 'telefono']
-            }]
+              attributes: ['id', 'nombre', 'registro']          
           }
         ]
       });
@@ -120,7 +146,7 @@ const notaController = {
         });
       }
 
-      const { notaFinal, observacion, grupoMateriaId, inscripcionId } = req.body;
+      const { notaFinal, observacion, grupoMateriaId } = req.body;
 
       // Verificar que el grupo de materia existe
       const grupoMateria = await GrupoMateria.findByPk(grupoMateriaId);
@@ -132,17 +158,10 @@ const notaController = {
       }
 
       // Verificar que la inscripción existe
-      const inscripcion = await Inscripcion.findByPk(inscripcionId);
-      if (!inscripcion) {
-        return res.status(404).json({
-          success: false,
-          message: 'Inscripción no encontrada'
-        });
-      }
-
+      
       // Verificar que no exista ya una nota para esta combinación
       const notaExistente = await Nota.findOne({
-        where: { grupoMateriaId, inscripcionId }
+        where: { grupoMateriaId, estudianteId }
       });
 
       if (notaExistente) {
@@ -155,27 +174,53 @@ const notaController = {
       const nota = await Nota.create({
         notaFinal,
         observacion,
-        grupoMateriaId,
-        inscripcionId
+        grupoMateriaId
+        
       });
 
       // Obtener la nota con las relaciones incluidas
       const notaCompleta = await Nota.findByPk(nota.id, {
         include: [
           {
-            model: GrupoMateria,
+             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
+            attributes: ['id', 'grupo', 'estado', 'materiaId', 'docenteId'],
+            include: [
+              {
+                model: Materia,
+                as: 'materia',
+                attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+                include: [
+                  {
+                    model: PlanEstudio,
+                    as: 'planEstudio',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Nivel,
+                    as: 'nivel',
+                    attributes: ['id', 'nombre']
+                  },
+                  {
+                    model: Prerequisito,
+                    as: 'prerequisitos',
+                    attributes: ['id', 'materia_id', 'requiere_id']
+                  }
+                ]
+              },
+              {
+                model: Docente,
+                as: 'docente',
+                attributes: ['id', 'nombre', 'telefono']
+              }
+            ]
           },
-          {
-            model: Inscripcion,
-            as: 'inscripcion',
-            attributes: ['id', 'fecha', 'gestion'],
-            include: [{
+           {
+            
+           
               model: Estudiante,
               as: 'estudiante',
-              attributes: ['id', 'numero', 'registro']
-            }]
+              attributes: ['id', 'nombre', 'registro']          
           }
         ]
       });
@@ -207,7 +252,7 @@ const notaController = {
       }
 
       const { id } = req.params;
-      const { notaFinal, observacion, grupoMateriaId, inscripcionId } = req.body;
+      const { notaFinal, observacion, grupoMateriaId, estudianteId } = req.body;
 
       const nota = await Nota.findByPk(id);
       if (!nota) {
@@ -228,40 +273,12 @@ const notaController = {
         }
       }
 
-      // Verificar que la inscripción existe si se está actualizando
-      if (inscripcionId) {
-        const inscripcion = await Inscripcion.findByPk(inscripcionId);
-        if (!inscripcion) {
-          return res.status(404).json({
-            success: false,
-            message: 'Inscripción no encontrada'
-          });
-        }
-
-        // Verificar unicidad si se cambia alguna de las referencias
-        if (grupoMateriaId !== nota.grupoMateriaId || inscripcionId !== nota.inscripcionId) {
-          const notaExistente = await Nota.findOne({
-            where: { 
-              id: { [require('sequelize').Op.ne]: id },
-              grupoMateriaId: grupoMateriaId || nota.grupoMateriaId,
-              inscripcionId: inscripcionId || nota.inscripcionId
-            }
-          });
-
-          if (notaExistente) {
-            return res.status(400).json({
-              success: false,
-              message: 'Ya existe una nota registrada para este estudiante en este grupo'
-            });
-          }
-        }
-      }
+     
 
       await nota.update({
         notaFinal,
         observacion,
-        grupoMateriaId,
-        inscripcionId
+        grupoMateriaId
       });
 
       // Obtener la nota actualizada con las relaciones incluidas
@@ -270,18 +287,9 @@ const notaController = {
           {
             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
+            attributes: ['id', 'grupo', 'estado']
           },
-          {
-            model: Inscripcion,
-            as: 'inscripcion',
-            attributes: ['id', 'fecha', 'gestion'],
-            include: [{
-              model: Estudiante,
-              as: 'estudiante',
-              attributes: ['id', 'numero', 'registro']
-            }]
-          }
+         
         ]
       });
 
@@ -361,15 +369,7 @@ const notaController = {
         }
       }
 
-      if (updateData.inscripcionId) {
-        const inscripcion = await Inscripcion.findByPk(updateData.inscripcionId);
-        if (!inscripcion) {
-          return res.status(404).json({
-            success: false,
-            message: 'Inscripción no encontrada'
-          });
-        }
-      }
+     
 
       await nota.update(updateData);
 
@@ -379,17 +379,14 @@ const notaController = {
           {
             model: GrupoMateria,
             as: 'grupoMateria',
-            attributes: ['id', 'numero', 'estado']
+            attributes: ['id', 'grupo', 'estado']
           },
-          {
-            model: Inscripcion,
-            as: 'inscripcion',
-            attributes: ['id', 'fecha', 'gestion'],
-            include: [{
+         {
+            
+           
               model: Estudiante,
               as: 'estudiante',
-              attributes: ['id', 'numero', 'registro']
-            }]
+              attributes: ['id', 'nombre', 'registro']          
           }
         ]
       });
@@ -424,15 +421,12 @@ const notaController = {
       const notas = await Nota.findAll({
         where: { grupoMateriaId },
         include: [{
-          model: Inscripcion,
-          as: 'inscripcion',
-          attributes: ['id', 'fecha', 'gestion'],
-          include: [{
-            model: Estudiante,
-            as: 'estudiante',
-            attributes: ['id', 'numero', 'registro']
-          }]
-        }],
+            
+           
+              model: Estudiante,
+              as: 'estudiante',
+              attributes: ['id', 'nombre', 'registro']          
+          }],
         order: [['notaFinal', 'DESC']]
       });
 
@@ -448,42 +442,7 @@ const notaController = {
       });
     }
   },
-
-  // Obtener notas por inscripción (estudiante)
-  getByInscripcion: async (req, res) => {
-    try {
-      const { inscripcionId } = req.params;
-      
-      const inscripcion = await Inscripcion.findByPk(inscripcionId);
-      if (!inscripcion) {
-        return res.status(404).json({
-          success: false,
-          message: 'Inscripción no encontrada'
-        });
-      }
-
-      const notas = await Nota.findAll({
-        where: { inscripcionId },
-        include: [{
-          model: GrupoMateria,
-          as: 'grupoMateria',
-          attributes: ['id', 'numero', 'estado']
-        }],
-        order: [['notaFinal', 'DESC']]
-      });
-
-      res.status(200).json({
-        success: true,
-        data: notas
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Error al obtener notas de la inscripción',
-        error: error.message
-      });
-    }
-  }
+  
 };
 
 module.exports = notaController;

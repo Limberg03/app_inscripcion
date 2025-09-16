@@ -9,7 +9,7 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      numero: {
+      grupo: {
         type: Sequelize.STRING(10),
         allowNull: false
       },
@@ -38,6 +38,16 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'RESTRICT'
       },
+       horario_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'horarios',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT'
+      },
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,
@@ -51,9 +61,11 @@ module.exports = {
     });
 
     // Crear índices
-    await queryInterface.addIndex('grupos_materia', ['numero']);
+    await queryInterface.addIndex('grupos_materia', ['grupo']);
     await queryInterface.addIndex('grupos_materia', ['materia_id']);
     await queryInterface.addIndex('grupos_materia', ['docente_id']);
+    await queryInterface.addIndex('grupos_materia', ['horario_id']);
+
     await queryInterface.addIndex('grupos_materia', ['estado']);
 
   },

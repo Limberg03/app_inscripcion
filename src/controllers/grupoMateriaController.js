@@ -1,5 +1,14 @@
-const { GrupoMateria, Materia, Docente, Horario, Nota, PlanEstudio, Nivel, Prerequisito } = require('../models');
-const { validationResult } = require('express-validator');
+const {
+  GrupoMateria,
+  Materia,
+  Docente,
+  Horario,
+  Nota,
+  PlanEstudio,
+  Nivel,
+  Prerequisito,
+} = require("../models");
+const { validationResult } = require("express-validator");
 
 const grupoMateriaController = {
   // Obtener todos los grupos de materia
@@ -8,53 +17,64 @@ const grupoMateriaController = {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const offset = (page - 1) * limit;
-      const { estado, materiaId, docenteId } = req.query;
+      const { estado, materiaId, docenteId, horarioId } = req.query;
 
-      const where = {};
+      const where = {};
       if (estado !== undefined) {
-        where.estado = estado === 'true';
+        where.estado = estado === "true";
       }
       if (materiaId) {
-        where.materiaId = materiaId;
+        // Asumiendo que esta columna también es snake_case en la BD
+        where.materia_id = materiaId;
       }
       if (docenteId) {
-        where.docenteId = docenteId;
+        // Asumiendo que esta columna también es snake_case en la BD
+        where.docente_id = docenteId;
+      }
+      if (horarioId) {
+        // Utiliza el nombre real de la columna de la base de datos
+        where.horario_id = horarioId;
       }
 
       const gruposMateria = await GrupoMateria.findAndCountAll({
         where,
-        limit,
-        offset,
+        
+        attributes: { exclude: ["materiaId", "docenteId", "horarioId"] },
         include: [
           {
             model: Materia,
-            as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos'],
+            as: "materia",
+            attributes: ["id", "nombre", "sigla", "creditos"],
             include: [
               {
                 model: PlanEstudio,
-                as: 'planEstudio',
-                attributes: ['id', 'nombre']
+                as: "planEstudio",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Nivel,
-                as: 'nivel',
-                attributes: ['id', 'nombre']
+                as: "nivel",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Prerequisito,
-                as: 'prerequisitos',
-                attributes: ['id', 'materia_id', 'requiere_id']
-              }
-            ]
+                as: "prerequisitos",
+                attributes: ["id", "materia_id", "requiere_id"],
+              },
+            ],
           },
           {
             model: Docente,
-            as: 'docente',
-            attributes: ['id', 'nombre', 'telefono']
-          }
+            as: "docente",
+            attributes: ["id", "nombre", "telefono"],
+          },
+          {
+            model: Horario,
+            as: "horario",
+            attributes: ["id", "dia", "horaInicio", "horaFin"],
+          },
         ],
-        order: [['id', 'ASC']]
+        order: [["id", "ASC"]],
       });
 
       res.status(200).json({
@@ -64,14 +84,14 @@ const grupoMateriaController = {
           currentPage: page,
           totalPages: Math.ceil(gruposMateria.count / limit),
           totalItems: gruposMateria.count,
-          itemsPerPage: limit
-        }
+          itemsPerPage: limit,
+        },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Error al obtener grupos de materia',
-        error: error.message
+        message: "Error al obtener grupos de materia",
+        error: error.message,
       });
     }
   },
@@ -84,51 +104,62 @@ const grupoMateriaController = {
         include: [
           {
             model: Materia,
-            as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            as: "materia",
+            attributes: [
+              "id",
+              "nombre",
+              "sigla",
+              "creditos",
+              "nivelId",
+              "planEstudioId",
+            ],
             include: [
               {
                 model: PlanEstudio,
-                as: 'planEstudio',
-                attributes: ['id', 'nombre']
+                as: "planEstudio",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Nivel,
-                as: 'nivel',
-                attributes: ['id', 'nombre']
+                as: "nivel",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Prerequisito,
-                as: 'prerequisitos',
-                attributes: ['id', 'materia_id', 'requiere_id']
-              }
-            ]
+                as: "prerequisitos",
+                attributes: ["id", "materia_id", "requiere_id"],
+              },
+            ],
           },
           {
             model: Docente,
-            as: 'docente',
-            attributes: ['id', 'nombre', 'telefono']
-          }
-          
-        ]
+            as: "docente",
+            attributes: ["id", "nombre", "telefono"],
+          },
+          {
+            model: Horario,
+            as: "horario",
+            attributes: ["id", "dia", "horaInicio", "horaFin"],
+          },
+        ],
       });
 
       if (!grupoMateria) {
         return res.status(404).json({
           success: false,
-          message: 'Grupo de materia no encontrado'
+          message: "Grupo de materia no encontrado",
         });
       }
 
       res.status(200).json({
         success: true,
-        data: grupoMateria
+        data: grupoMateria,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Error al obtener grupo de materia',
-        error: error.message
+        message: "Error al obtener grupo de materia",
+        error: error.message,
       });
     }
   },
@@ -140,19 +171,19 @@ const grupoMateriaController = {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: 'Errores de validación',
-          errors: errors.array()
+          message: "Errores de validación",
+          errors: errors.array(),
         });
       }
 
-      const { numero, estado, materiaId, docenteId } = req.body;
+      const { grupo, estado, materiaId, docenteId } = req.body;
 
       // Verificar que la materia existe
       const materia = await Materia.findByPk(materiaId);
       if (!materia) {
         return res.status(404).json({
           success: false,
-          message: 'Materia no encontrada'
+          message: "Materia no encontrada",
         });
       }
 
@@ -161,15 +192,15 @@ const grupoMateriaController = {
       if (!docente) {
         return res.status(404).json({
           success: false,
-          message: 'Docente no encontrado'
+          message: "Docente no encontrado",
         });
       }
-      
+
       const grupoMateria = await GrupoMateria.create({
-        numero,
+        grupo,
         estado: estado !== undefined ? estado : true,
         materiaId,
-        docenteId
+        docenteId,
       });
 
       // Obtener el grupo con las relaciones incluidas
@@ -177,44 +208,56 @@ const grupoMateriaController = {
         include: [
           {
             model: Materia,
-            as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            as: "materia",
+            attributes: [
+              "id",
+              "nombre",
+              "sigla",
+              "creditos",
+              "nivelId",
+              "planEstudioId",
+            ],
             include: [
               {
                 model: PlanEstudio,
-                as: 'planEstudio',
-                attributes: ['id', 'nombre']
+                as: "planEstudio",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Nivel,
-                as: 'nivel',
-                attributes: ['id', 'nombre']
+                as: "nivel",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Prerequisito,
-                as: 'prerequisitos',
-                attributes: ['id', 'materia_id', 'requiere_id']
-              }
-            ]
+                as: "prerequisitos",
+                attributes: ["id", "materia_id", "requiere_id"],
+              },
+            ],
           },
           {
             model: Docente,
-            as: 'docente',
-            attributes: ['id', 'nombre', 'telefono']
-          }
-        ]
+            as: "docente",
+            attributes: ["id", "nombre", "telefono"],
+          },
+          {
+            model: Horario,
+            as: "horario",
+            attributes: ["id", "dia", "horaInicio", "horaFin"],
+          },
+        ],
       });
 
       res.status(201).json({
         success: true,
-        message: 'Grupo de materia creado exitosamente',
-        data: grupoCompleto
+        message: "Grupo de materia creado exitosamente",
+        data: grupoCompleto,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Error al crear grupo de materia',
-        error: error.message
+        message: "Error al crear grupo de materia",
+        error: error.message,
       });
     }
   },
@@ -226,19 +269,19 @@ const grupoMateriaController = {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: 'Errores de validación',
-          errors: errors.array()
+          message: "Errores de validación",
+          errors: errors.array(),
         });
       }
 
       const { id } = req.params;
-      const { numero, estado, materiaId, docenteId } = req.body;
+      const { grupo, estado, materiaId, docenteId } = req.body;
 
       const grupoMateria = await GrupoMateria.findByPk(id);
       if (!grupoMateria) {
         return res.status(404).json({
           success: false,
-          message: 'Grupo de materia no encontrado'
+          message: "Grupo de materia no encontrado",
         });
       }
 
@@ -248,7 +291,7 @@ const grupoMateriaController = {
         if (!materia) {
           return res.status(404).json({
             success: false,
-            message: 'Materia no encontrada'
+            message: "Materia no encontrada",
           });
         }
       }
@@ -259,16 +302,16 @@ const grupoMateriaController = {
         if (!docente) {
           return res.status(404).json({
             success: false,
-            message: 'Docente no encontrado'
+            message: "Docente no encontrado",
           });
         }
       }
 
       await grupoMateria.update({
-        numero,
+        grupo,
         estado,
         materiaId,
-        docenteId
+        docenteId,
       });
 
       // Obtener el grupo actualizado con las relaciones incluidas
@@ -276,44 +319,56 @@ const grupoMateriaController = {
         include: [
           {
             model: Materia,
-            as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            as: "materia",
+            attributes: [
+              "id",
+              "nombre",
+              "sigla",
+              "creditos",
+              "nivelId",
+              "planEstudioId",
+            ],
             include: [
               {
                 model: PlanEstudio,
-                as: 'planEstudio',
-                attributes: ['id', 'nombre']
+                as: "planEstudio",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Nivel,
-                as: 'nivel',
-                attributes: ['id', 'nombre']
+                as: "nivel",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Prerequisito,
-                as: 'prerequisitos',
-                attributes: ['id', 'materia_id', 'requiere_id']
-              }
-            ]
+                as: "prerequisitos",
+                attributes: ["id", "materia_id", "requiere_id"],
+              },
+            ],
           },
           {
             model: Docente,
-            as: 'docente',
-            attributes: ['id', 'nombre', 'telefono']
-          }
-        ]
+            as: "docente",
+            attributes: ["id", "nombre", "telefono"],
+          },
+          {
+            model: Horario,
+            as: "horario",
+            attributes: ["id", "dia", "horaInicio", "horaFin"],
+          },
+        ],
       });
 
       res.status(200).json({
         success: true,
-        message: 'Grupo de materia actualizado exitosamente',
-        data: grupoActualizado
+        message: "Grupo de materia actualizado exitosamente",
+        data: grupoActualizado,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Error al actualizar grupo de materia',
-        error: error.message
+        message: "Error al actualizar grupo de materia",
+        error: error.message,
       });
     }
   },
@@ -322,12 +377,12 @@ const grupoMateriaController = {
   delete: async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       const grupoMateria = await GrupoMateria.findByPk(id);
       if (!grupoMateria) {
         return res.status(404).json({
           success: false,
-          message: 'Grupo de materia no encontrado'
+          message: "Grupo de materia no encontrado",
         });
       }
 
@@ -335,13 +390,13 @@ const grupoMateriaController = {
 
       res.status(200).json({
         success: true,
-        message: 'Grupo de materia eliminado exitosamente'
+        message: "Grupo de materia eliminado exitosamente",
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Error al eliminar grupo de materia',
-        error: error.message
+        message: "Error al eliminar grupo de materia",
+        error: error.message,
       });
     }
   },
@@ -353,8 +408,8 @@ const grupoMateriaController = {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: 'Errores de validación',
-          errors: errors.array()
+          message: "Errores de validación",
+          errors: errors.array(),
         });
       }
 
@@ -365,7 +420,7 @@ const grupoMateriaController = {
       if (!grupoMateria) {
         return res.status(404).json({
           success: false,
-          message: 'Grupo de materia no encontrado'
+          message: "Grupo de materia no encontrado",
         });
       }
 
@@ -375,7 +430,7 @@ const grupoMateriaController = {
         if (!materia) {
           return res.status(404).json({
             success: false,
-            message: 'Materia no encontrada'
+            message: "Materia no encontrada",
           });
         }
       }
@@ -385,7 +440,7 @@ const grupoMateriaController = {
         if (!docente) {
           return res.status(404).json({
             success: false,
-            message: 'Docente no encontrado'
+            message: "Docente no encontrado",
           });
         }
       }
@@ -397,44 +452,56 @@ const grupoMateriaController = {
         include: [
           {
             model: Materia,
-            as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            as: "materia",
+            attributes: [
+              "id",
+              "nombre",
+              "sigla",
+              "creditos",
+              "nivelId",
+              "planEstudioId",
+            ],
             include: [
               {
                 model: PlanEstudio,
-                as: 'planEstudio',
-                attributes: ['id', 'nombre']
+                as: "planEstudio",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Nivel,
-                as: 'nivel',
-                attributes: ['id', 'nombre']
+                as: "nivel",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Prerequisito,
-                as: 'prerequisitos',
-                attributes: ['id', 'materia_id', 'requiere_id']
-              }
-            ]
+                as: "prerequisitos",
+                attributes: ["id", "materia_id", "requiere_id"],
+              },
+            ],
           },
           {
             model: Docente,
-            as: 'docente',
-            attributes: ['id', 'nombre', 'telefono']
-          }
-        ]
+            as: "docente",
+            attributes: ["id", "nombre", "telefono"],
+          },
+          {
+            model: Horario,
+            as: "horario",
+            attributes: ["id", "dia", "horaInicio", "horaFin"],
+          },
+        ],
       });
 
       res.status(200).json({
         success: true,
-        message: 'Grupo de materia actualizado parcialmente',
-        data: grupoActualizado
+        message: "Grupo de materia actualizado parcialmente",
+        data: grupoActualizado,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Error al actualizar grupo de materia',
-        error: error.message
+        message: "Error al actualizar grupo de materia",
+        error: error.message,
       });
     }
   },
@@ -443,12 +510,12 @@ const grupoMateriaController = {
   getByMateria: async (req, res) => {
     try {
       const { materiaId } = req.params;
-      
+
       const materia = await Materia.findByPk(materiaId);
       if (!materia) {
         return res.status(404).json({
           success: false,
-          message: 'Materia no encontrada'
+          message: "Materia no encontrada",
         });
       }
 
@@ -457,49 +524,56 @@ const grupoMateriaController = {
         include: [
           {
             model: Materia,
-            as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            as: "materia",
+            attributes: [
+              "id",
+              "nombre",
+              "sigla",
+              "creditos",
+              "nivelId",
+              "planEstudioId",
+            ],
             include: [
               {
                 model: PlanEstudio,
-                as: 'planEstudio',
-                attributes: ['id', 'nombre']
+                as: "planEstudio",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Nivel,
-                as: 'nivel',
-                attributes: ['id', 'nombre']
+                as: "nivel",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Prerequisito,
-                as: 'prerequisitos',
-                attributes: ['id', 'materia_id', 'requiere_id']
-              }
-            ]
+                as: "prerequisitos",
+                attributes: ["id", "materia_id", "requiere_id"],
+              },
+            ],
           },
           {
             model: Docente,
-            as: 'docente',
-            attributes: ['id', 'nombre', 'telefono']
+            as: "docente",
+            attributes: ["id", "nombre", "telefono"],
           },
           {
             model: Horario,
-            as: 'horarios',
-            attributes: ['id', 'fechaIni', 'fechaFinal']
-          }
+            as: "horario",
+            attributes: ["id", "dia", "fechaIni", "fechaFinal"],
+          },
         ],
-        order: [['numero', 'ASC']]
+        order: [["grupo", "ASC"]],
       });
 
       res.status(200).json({
         success: true,
-        data: grupos
+        data: grupos,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Error al obtener grupos de la materia',
-        error: error.message
+        message: "Error al obtener grupos de la materia",
+        error: error.message,
       });
     }
   },
@@ -508,12 +582,12 @@ const grupoMateriaController = {
   getByDocente: async (req, res) => {
     try {
       const { docenteId } = req.params;
-      
+
       const docente = await Docente.findByPk(docenteId);
       if (!docente) {
         return res.status(404).json({
           success: false,
-          message: 'Docente no encontrado'
+          message: "Docente no encontrado",
         });
       }
 
@@ -522,47 +596,50 @@ const grupoMateriaController = {
         include: [
           {
             model: Materia,
-            as: 'materia',
-            attributes: ['id', 'nombre', 'sigla', 'creditos', 'nivelId', 'planEstudioId'],
+            as: "materia",
+            attributes: [
+              "id",
+              "nombre",
+              "sigla",
+              "creditos",
+              "nivelId",
+              "planEstudioId",
+            ],
             include: [
               {
                 model: PlanEstudio,
-                as: 'planEstudio',
-                attributes: ['id', 'nombre']
+                as: "planEstudio",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Nivel,
-                as: 'nivel',
-                attributes: ['id', 'nombre']
+                as: "nivel",
+                attributes: ["id", "nombre"],
               },
               {
                 model: Prerequisito,
-                as: 'prerequisitos',
-                attributes: ['id', 'materia_id', 'requiere_id']
-              }
-            ]
+                as: "prerequisitos",
+                attributes: ["id", "materia_id", "requiere_id"],
+              },
+            ],
           },
-          {
-            model: Horario,
-            as: 'horarios',
-            attributes: ['id', 'fechaIni', 'fechaFinal']
-          }
+         
         ],
-        order: [['numero', 'ASC']]
+        order: [["grupo", "ASC"]],
       });
 
       res.status(200).json({
         success: true,
-        data: grupos
+        data: grupos,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Error al obtener grupos del docente',
-        error: error.message
+        message: "Error al obtener grupos del docente",
+        error: error.message,
       });
     }
-  }
+  },
 };
 
 module.exports = grupoMateriaController;

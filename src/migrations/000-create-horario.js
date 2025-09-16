@@ -9,9 +9,13 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      fecha: {
-        type: Sequelize.DATE,
-        allowNull: false
+      // fecha: {
+      //   type: Sequelize.DATE,
+      //   allowNull: false
+      // },
+       dia: {
+        type: Sequelize.STRING(100),
+        allowNull: false 
       },
       hora_inicio: {
         type: Sequelize.TIME,
@@ -36,7 +40,7 @@ module.exports = {
     });
 
     // Crear índices
-    await queryInterface.addIndex('horarios', ['fecha']);
+    await queryInterface.addIndex('horarios', ['dia']);
     await queryInterface.addIndex('horarios', ['hora_inicio']);
     await queryInterface.addIndex('horarios', ['hora_fin']);
   },

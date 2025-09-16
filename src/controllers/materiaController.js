@@ -20,8 +20,7 @@ const materiaController = {
 
       const materias = await Materia.findAndCountAll({
         where,
-        limit,
-        offset,
+       
         include: [
           {
             model: PlanEstudio,
@@ -85,7 +84,7 @@ const materiaController = {
           {
             model: GrupoMateria,
             as: 'gruposMateria',
-            attributes: ['id', 'numero', 'estado']
+            attributes: ['id', 'grupo', 'estado']
           }
         ]
       });
@@ -411,7 +410,7 @@ const materiaController = {
           {
             model: GrupoMateria,
             as: 'gruposMateria',
-            attributes: ['id', 'numero', 'estado']
+            attributes: ['id', 'grupo', 'estado']
           }
         ],
         order: [['nombre', 'ASC']]
@@ -454,7 +453,7 @@ const materiaController = {
           {
             model: GrupoMateria,
             as: 'gruposMateria',
-            attributes: ['id', 'numero', 'estado']
+            attributes: ['id', 'grupo', 'estado']
           }
         ],
         order: [['nivel', 'numNivel', 'ASC'], ['nombre', 'ASC']]

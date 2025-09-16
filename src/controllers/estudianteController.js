@@ -10,8 +10,7 @@ const estudianteController = {
       const offset = (page - 1) * limit;
 
       const estudiantes = await Estudiante.findAndCountAll({
-        limit,
-        offset,
+        
         include: [{
           model: Inscripcion,
           as: 'inscripciones',

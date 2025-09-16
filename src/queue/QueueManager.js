@@ -237,7 +237,7 @@ class RedisQueue extends EventEmitter {
   }
 
   async getStats() {
-    console.log(`🔍 [RedisQueue] Getting stats for queue: ${this.name}`);
+   // console.log(`🔍 [RedisQueue] Getting stats for queue: ${this.name}`);
     
     try {
       const stats = await this.redis.hgetall(this.keys.stats);
@@ -253,7 +253,7 @@ class RedisQueue extends EventEmitter {
         ...numericStats
       };
     } catch (error) {
-      console.error(`❌ [RedisQueue] Error generating stats:`, error);
+   //   console.error(`❌ [RedisQueue] Error generating stats:`, error);
       throw error;
     }
   }

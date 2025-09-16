@@ -20,8 +20,7 @@ const carreraController = {
 
       const carreras = await Carrera.findAndCountAll({
         where,
-        limit,
-        offset,
+        
         include: [{
           model: PlanEstudio,
           as: 'planEstudio',
