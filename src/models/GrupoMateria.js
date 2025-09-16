@@ -10,6 +10,7 @@ const GrupoMateria = sequelize.define('GrupoMateria', {
   grupo: {
     type: DataTypes.STRING(10),
     allowNull: false,
+      unique: true, 
     validate: {
       notEmpty: true,
       len: [1, 10]

@@ -26,7 +26,7 @@ const Horario = sequelize.define('Horario', {
   tableName: 'horarios',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
 });
 
 module.exports = Horario;

@@ -39,10 +39,14 @@ module.exports = {
       }
     });
 
-    // Crear índices
-    await queryInterface.addIndex('horarios', ['dia']);
-    await queryInterface.addIndex('horarios', ['hora_inicio']);
-    await queryInterface.addIndex('horarios', ['hora_fin']);
+    await queryInterface.addIndex(
+      'horarios',
+      ['dia', 'hora_inicio', 'hora_fin'], // Columnas que forman la restricción
+      {
+        unique: true,
+      }
+    );
+    
   },
 
   down: async (queryInterface, Sequelize) => {

@@ -11,7 +11,9 @@ module.exports = {
       },
       nombre: {
         type: Sequelize.STRING(100),
-        allowNull: false
+        allowNull: false,
+        unique: true
+
       },
       sigla: {
         type: Sequelize.STRING(20),

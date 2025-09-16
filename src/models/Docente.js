@@ -10,6 +10,7 @@ const Docente = sequelize.define('Docente', {
   nombre: {
     type: DataTypes.STRING(100),
     allowNull: false,
+      unique: true, 
     validate: {
       notEmpty: true,
       len: [1, 100]

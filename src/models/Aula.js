@@ -10,6 +10,7 @@ const Aula = sequelize.define('Aula', {
   nombre: {
     type: DataTypes.STRING(50),
     allowNull: false,
+      unique: true, 
     validate: {
       notEmpty: true,
       len: [1, 50]
