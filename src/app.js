@@ -45,8 +45,8 @@ if (process.env.NODE_ENV === 'development') {
 // ================ RUTAS ================
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
-app.use('/', routes); // Se recomienda prefijar las rutas principales
-app.use('/sync', routesSync); // Se recomienda prefijar las rutas principales
+app.use('/', routes); 
+app.use('/sync', routesSync); 
 
 app.use('/queue', queueRoutes);
 

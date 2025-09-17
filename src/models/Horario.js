@@ -12,12 +12,12 @@ const Horario = sequelize.define('Horario', {
     allowNull: false
   },
   horaInicio: {
-    type: DataTypes.TIME,
+    type: DataTypes.STRING(60),
     allowNull: false,
     field: 'hora_inicio'
   },
   horaFin: {
-    type: DataTypes.TIME,
+    type: DataTypes.STRING(60),
     allowNull: false,
     field: 'hora_fin'
   },

@@ -18,11 +18,13 @@ module.exports = {
         allowNull: false 
       },
       hora_inicio: {
-        type: Sequelize.TIME,
+        type: Sequelize.STRING(100),
+
         allowNull: false
       },
       hora_fin: {
-        type: Sequelize.TIME,
+        type: Sequelize.STRING(100),
+
         allowNull: false
       },
       
